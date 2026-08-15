@@ -1,0 +1,174 @@
+﻿==========================================================
+Line: 332 | Step: 5252 | Tool: replace_file_content
+Desc: Refactor getHomeHtml to use the newly standardized renderStatCard primitive for metrics and clean icons.
+TargetContent:
+            <!-- Executive KPI Row -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 16px; padding: 0 32px; margin-bottom: 24px;">
+                <!-- KPI 1: New Matches -->
+                <div class="metric-card metric-card-trigger" data-tab="discover" style="cursor: pointer; border: 1px solid var(--inv-divider); padding: 20px; border-radius: 8px; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
+                    <div class="metric-label" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; color: var(--inv-text-secondary);">New Matches</div>
+                    <div class="metric-value" style="font-size: 1.75rem; color: var(--inv-accent); font-weight: 700; margin: 4px 0;"> ${discoverCount} </div>
+                    <div class="text-xs text-success" style="color: var(--inv-success); display: flex; align-items: center; gap: 4px; margin-top: 4px;">
+                        <span>↑</span> +2 vs yesterday
+                    </div>
+                    <div class="text-xs text-muted" style="margin-top: 4px; color: var(--inv-text-secondary);"> Sourced deals </div>
+                </div>
+                
+                <!-- KPI 2: Deals in Review -->
+                <div class="metric-card metric-card-trigger" data-tab="deals" style="cursor: pointer; border: 1px solid var(--inv-divider); padding: 20px; border-radius: 8px; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
+                    <div class="metric-label" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; color: var(--inv-text-secondary);">Deals in Review</div>
+                    <div class="metric-value" style="font-size: 1.75rem; color: var(--inv-text-primary); font-weight: 700; margin: 4px 0;"> ${activeDealsCount} </div>
+                    <div class="text-xs text-success" style="color: var(--inv-success); display: flex; align-items: center; gap: 4px; margin-top: 4px;">
+                        <span>↑</span> +1 this week
+                    </div>
+                    <div class="text-xs text-muted" style="margin-top: 4px; color: var(--inv-text-secondary);"> Active pipeline flow </div>
+                </div>
+
+                <!-- KPI 3: Diligence in Progress -->
+                <div class="metric-card metric-card-trigger" data-tab="deals" data-stage="diligence" style="cursor: pointer; border: 1px solid var(--inv-divider); padding: 20px; border-radius: 8px; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
+                    <div class="metric-label" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; color: var(--inv-text-secondary);">Diligence Active</div>
+                    <div class="metric-value" style="font-size: 1.75rem; color: var(--inv-warning); font-weight: 700; margin: 4px 0;"> ${diligenceCount} </div>
+                    <div class="text-xs text-muted" style="display: flex; align-items: center; gap: 4px; margin-top: 4px;">
+                        <span>✔</span> 1 clear / ${diligenceCount - 1 > 0 ? diligenceCount - 1 : 0} blocked
+                    </div>
+                    <div class="text-xs text-muted" style="margin-top: 4px; color: var(--inv-text-secondary);"> Data room reviews </div>
+                </div>
+
+                <!-- KPI 4: Meetings Today -->
+                <div class="metric-card metric-card-trigger" data-tab="meetings" style="cursor: pointer; border: 1px solid var(--inv-divider); padding: 20px; border-radius: 8px; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
+                    <div class="metric-label" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; color: var(--inv-text-secondary);">Meetings Today</div>
+                    <div class="metric-value" style="font-size: 1.75rem; color: var(--inv-text-primary); font-weight: 700; margin: 4px 0;"> ${meetingsToday} </div>
+                    <div class="text-xs text-success" style="color: var(--inv-success); display: flex; align-items: center; gap: 4px; margin-top: 4px;">
+                        <span>•</span> Sync schedule
+                    </div>
+                    <div class="text-xs text-muted" style="margin-top: 4px; color: var(--inv-text-secondary);"> Scheduled interactions </div>
+                </div>
+
+                <!-- KPI 5: Founder SLA Risk -->
+                <div class="metric-card metric-card-trigger" data-tab="deals" style="cursor: pointer; border: 1px solid var(--inv-divider); padding: 20px; border-radius: 8px; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
+                    <div class="metric-label" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; color: var(--inv-text-secondary);">SLA Risk Alerts</div>
+                    <div class="metric-value" style="font-size: 1.75rem; color: var(--inv-error); font-weight: 700; margin: 4px 0;"> ${riskAlerts.length} </div>
+                    <div class="text-xs text-danger" style="color: var(--inv-error); display: flex; align-items: center; gap: 4px; margin-top: 4px;">
+                        <span>⚠️</span> Actions pending
+                    </div>
+                    <div class="text-xs text-muted" style="margin-top: 4px; color: var(--inv-text-secondary);"> Responsiveness alerts </div>
+                </div>
+
+                <!-- KPI 6: Capital Committed -->
+                <div class="metric-card metric-card-trigger" data-tab="portfolio" style="cursor: pointer; border: 1px solid var(--inv-divider); padding: 20px; border-radius: 8px; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
+                    <div class="metric-label" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; color: var(--inv-text-secondary);">Capital Committed</div>
+                    <div class="metric-value" style="font-size: 1.75rem; color: var(--inv-text-primary); font-weight: 700; margin: 4px 0;"> ${committedAmt} </div>
+                    <div class="text-xs text-muted" style="display: flex; align-items: center; gap: 4px; margin-top: 4px; color: var(--inv-text-secondary);" title="${poolDetail}">
+                        <span>★</span> ${poolDetail}
+                    </div>
+                    <div class="text-xs text-muted" style="margin-top: 4px; color: var(--inv-text-secondary);"> Across ${holdingsCount} holdings </div>
+                </div>
+            </div>
+ReplacementContent:
+            <!-- Executive KPI Row -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 16px; padding: 0 32px; margin-bottom: 24px;">
+                ${this.renderStatCard('discover', 'New Matches', discoverCount, '+2 vs yesterday', 'Sourced deals', '--inv-accent')}
+                ${this.renderStatCard('deals', 'Deals in Review', activeDealsCount, '+1 this week', 'Active pipeline flow', '--inv-text-primary')}
+                ${this.renderStatCard('deals', 'Diligence Active', diligenceCount, '', `${diligenceCount} in data room`, '--inv-warning')}
+                ${this.renderStatCard('meetings', 'Meetings Today', meetingsToday, '', 'Scheduled interactions', '--inv-text-primary')}
+                ${this.renderStatCard('deals', 'SLA Risk Alerts', riskAlerts.length, '', 'Responsiveness alerts', '--inv-error')}
+                ${this.renderStatCard('portfolio', 'Capital Committed', committedAmt, '', `Across ${holdingsCount} holdings`, '--inv-text-primary')}
+            </div>
+==========================================================
+Line: 340 | Step: 5260 | Tool: replace_file_content
+Desc: Embed telemetry calls directly inside showToast and handleAction. Add telemetry triggers for tab changes and filters.
+TargetContent:
+        if (action === 'watchlist') {
+            deal.status = 'watchlist';
+            deal.crmActivity.unshift({ event: "Added to Shortlist", user: "Jane Sterling (Investor)", date: "Just now" });
+            this.showToast(`${deal.name} added to shortlist/watchlist.`);
+        } else if (action === 'request_intro') {
+            deal.status = 'interest_sent';
+            deal.updates.unshift('Interest sent just now');
+            deal.crmActivity.unshift({ event: "Interest Expressed / Intro Requested", user: "Jane Sterling (Investor)", date: "Just now" });
+            this.showToast(`Introduction request sent for ${deal.name}.`);
+        } else if (action === 'pass') {
+            deal.status = 'passed';
+            deal.crmActivity.unshift({ event: "Passed on deal", user: "Jane Sterling (Investor)", date: "Just now" });
+            this.showToast(`${deal.name} archived/passed.`);
+        } else if (action === 'request_vdr') {
+            deal.vaultState = 'requested';
+            deal.updates.unshift('VDR access requested');
+            deal.crmActivity.unshift({ event: "Requested VDR access", user: "Jane Sterling (Investor)", date: "Just now" });
+            this.showToast(`Diligence vault access requested from ${deal.founder}.`, 'warning');
+        } else if (action === 'nudge-vdr') {
+            deal.crmActivity.unshift({ event: "Nudge sent for VDR access", user: "Jane Sterling (Investor)", date: "Just now" });
+            this.showToast(`System nudge sent to ${deal.founder} for document verification.`, 'warning');
+        } else if (action === 'open_vdr') {
+            this.showToast(`Opening VDR Document Room for ${deal.name}.`);
+            deal.status = 'diligence';
+            this.state.selectedDealId = deal.id;
+            this.state.activeTab = 'deals';
+        }
+ 
+        if (this.state.activeTab === 'discover') {
+            const remaining = this.getDealsForTab('discover');
+            this.state.selectedDealId = remaining.length > 0 ? remaining[0].id : null;
+        }
+        this.saveStateToLocalStorage();
+        this.render();
+    }
+ 
+    showToast(message, type = 'success') {
+        const toast = document.createElement('div');
+        toast.style.position = 'fixed';
+        toast.style.bottom = '24px';
+        toast.style.right = '24px';
+        toast.style.background = type === 'success' ? 'var(--inv-success)' : 'var(--inv-warning)';
+        toast.style.color = '#fff';
+ReplacementContent:
+        if (action === 'watchlist') {
+            deal.status = 'watchlist';
+            deal.crmActivity.unshift({ event: "Added to Shortlist", user: "Jane Sterling (Investor)", date: "Just now" });
+            this.showToast(`${deal.name} added to shortlist/watchlist.`);
+            this.logTelemetry('DEAL_SHORTLISTED', { dealId: id, name: deal.name });
+        } else if (action === 'request_intro') {
+            deal.status = 'interest_sent';
+            deal.updates.unshift('Interest sent just now');
+            deal.crmActivity.unshift({ event: "Interest Expressed / Intro Requested", user: "Jane Sterling (Investor)", date: "Just now" });
+            this.showToast(`Introduction request sent for ${deal.name}.`);
+            this.logTelemetry('DEAL_STAGE_PROMOTED', { dealId: id, name: deal.name, targetStage: 'interest_sent' });
+        } else if (action === 'pass') {
+            deal.status = 'passed';
+            deal.crmActivity.unshift({ event: "Passed on deal", user: "Jane Sterling (Investor)", date: "Just now" });
+            this.showToast(`${deal.name} archived/passed.`);
+            this.logTelemetry('DEAL_ARCHIVED', { dealId: id, name: deal.name });
+        } else if (action === 'request_vdr') {
+            deal.vaultState = 'requested';
+            deal.updates.unshift('VDR access requested');
+            deal.crmActivity.unshift({ event: "Requested VDR access", user: "Jane Sterling (Investor)", date: "Just now" });
+            this.showToast(`Diligence vault access requested from ${deal.founder}.`, 'warning');
+            this.logTelemetry('VDR_ACCESS_REQUESTED', { dealId: id, name: deal.name, founder: deal.founder });
+        } else if (action === 'nudge-vdr') {
+            deal.crmActivity.unshift({ event: "Nudge sent for VDR access", user: "Jane Sterling (Investor)", date: "Just now" });
+            this.showToast(`System nudge sent to ${deal.founder} for document verification.`, 'warning');
+            this.logTelemetry('VDR_NUDGE_SENT', { dealId: id, name: deal.name });
+        } else if (action === 'open_vdr') {
+            this.showToast(`Opening VDR Document Room for ${deal.name}.`);
+            deal.status = 'diligence';
+            this.state.selectedDealId = deal.id;
+            this.state.activeTab = 'deals';
+            this.logTelemetry('VDR_ROOM_OPENED', { dealId: id, name: deal.name });
+        }
+ 
+        if (this.state.activeTab === 'discover') {
+            const remaining = this.getDealsForTab('discover');
+            this.state.selectedDealId = remaining.length > 0 ? remaining[0].id : null;
+        }
+        this.saveStateToLocalStorage();
+        this.render();
+    }
+ 
+    showToast(message, type = 'success') {
+        this.logTelemetry('TOAST_NOTIFICATION', { message, type });
+        const toast = document.createElement('div');
+        toast.style.position = 'fixed';
+        toast.style.bottom = '24px';
+        toast.style.right = '24px';
+        toast.style.background = type === 'success' ? 'var(--inv-success)' : 'var(--inv-warning)';
+        toast.style.color = '#fff';

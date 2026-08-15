@@ -1,0 +1,158 @@
+﻿Created At: 2026-06-13T03:20:35Z
+Completed At: 2026-06-13T03:20:36Z
+File Path: `file:///C:/Users/user/.gemini/antigravity/brain/017c2d6e-0c4a-460f-84ba-aa8def928e41/walkthrough.md`
+Total Lines: 149
+Total Bytes: 20274
+Showing lines 1 to 149
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+1: # Refactoring & Trust Audit Walkthrough
+2: 
+3: All three phases of the comprehensive refactoring and trust audit plan have been successfully executed!
+4: 
+5: ## Phase 1: Trust/Compliance Audit & Cleanup
+6: - Removed unauthorized VC logos and placeholder trust metric numbers from `HomeView.js`.
+7: - Implemented versioning and "Last Updated" timestamps in standard objects within `TermsView.js` and `PrivacyView.js`.
+8: - Created a `claims_register.md` file to track public claims and their substantiation.
+9: 
+10: ## Phase 2: Schema Normalization & Mixed-String Cleanup
+11: - Normalized `InvestorDashboardView.js` Sidebar and KPI modules to eliminate inline string formatting and composite blobs.
+12: - Added "last verified" timestamps (`lastPlaidCheck`, `verifiedAt`) to KYC logs and admin actions in `AdminDashboardView.js`.
+13: - Normalized `EntrepreneurDashboardView.js`, particularly fixing the `history` timeline rendering by decomposing string chunks into explicit `{ time, action }` objects.
+14: 
+15: ## Phase 3: Action States and Permission Logic
+16: - Created the centralized `js/utils/access_matrix.js` file defining `ACCESS_STATE` enumeration (e.g. `OPEN_VDR`, `REQUEST_VDR`, `REQUEST_INTRO`) and mapping them to standardized UI tokens (icon, style, label, tooltip, disabled states).
+17: - Refactored `InvestorDashboardView.js` to rely entirely on `getActionStateToken` to dynamically build its CTA buttons, removing hardcoded stylistic decisions from the view logic and standardizing all user action states.
+18: 
+19: > [!NOTE]
+20: > The unified view-render state contract is fully operational. All UI elements derived from access control now look directly to the centralized access matrix to determine their styles and states.
+21: 
+22: Please review the codebase when you have a moment, and test the `InvestorDashboardView.js` components and other views to verify that formatting strings is completely decoupled from your view states. Let me know if you would like me to tackle anything else!
+23: 
+24: ## Phase 4: Dynamic Pricing Model & Dynamic FAQ Implementation
+25: - Replaced the mixed-state static pricing cards and old copywriting in `HomeView.js` with structured, JSX-ready configurations.
+26: - Implemented state-reactive audience (`founder` | `investor`) and billing cycle (`monthly` | `annual`) selectors.
+27: - Added verified founder plans and investor freemium plans with `badge`, `description`, `cta`, and `finePrint` fields matching the exact copywriting specs.
+28: - Rendered audience-specific microcopy warnings and instructions.
+29: - Implemented a dynamic FAQ module inside the cards renderer that automatically swaps between Founder FAQs and Investor FAQs depending on the active audience, including automatic event listener rebinding for smooth accordion collapses/expansions.
+30: ## Phase 5: Launch-Ready Patches (P0/P1/P2 Checklist)
+31: - **Interactive Segmented Control Buttons**: Converted pricing audience and billing controls in `HomeView.js` to use `<button type="button">` structure with separated markup nodes.
+32: - **Dynamic trust microcopy**: Injected dynamic pricing support copy based on the selected audience (Founder vs Investor) so the "Cancel anytime on investor plans" statement only shows for investors.
+33: - **INR pricing values**: Replaced pricing placeholders with actual INR amounts (`₹12,500 / month`, `₹1,20,000 / year`, `₹20,000 / month`, `₹1,92,000 / year`) based on the 20% annual savings model.
+34: - **Accessible Pricing FAQ Accordion**: Optimized dynamic accordion markup with correct button structures, `aria-expanded` and `aria-controls` properties, chevron animations, and `.join('\n')` spacing.
+35: - **Compliance Wording Alignment**: Standardized all SOC 2 compliance statements globally to "SOC 2 Type II independently audited".
+36: - **Real legal agreements**: Added sections for `Founder Agreement Addendum` and `Investor Agreement Addendum` at the end of `TermsView.js` with matching sidebar Table of Contents anchors, and added corresponding footer links in `HomeView.js`.
+37: - **SOC3 Link Removal**: Removed the dead `/soc3` report placeholder link from the footer links to prevent broken page routing.
+38: - **Footer trust badges**: Upgraded footer inline bullet text to visually premium, harmonious styled chips.
+39: 
+40: ## Phase 6: Login Page Upgrades & Layout Fixes
+41: - **Non-Fixed Auth Header**: Configured the simplified navbar to render with the `.auth-variant` class, resetting its position to relative/static and removing overlapping layout vibes on login and signup pages.
+42: - **Form Card Overhaul**: Rebuilt the login panel using a premium `.auth-card` card layout containing structured padding, smooth borders (`rgba(255,255,255,0.08)`), blur backing (`backdrop-filter: blur(16px)`), and a dedicated inner form alignment scheme.
+43: - **Rhythmic Form Spacing**: Overhauled all field and button wrappers (`.form-group`, `.password-row`, `.form-actions`) using vertical spacing grids to resolve all inline text collapsing bugs.
+44: - **Designed Dynamic UX Validation States**: Integrated custom inline alerts (`.state-alert.error` and `.state-alert.success`) for forgot-password, support queries, and successful authorization actions.
+45: - **Simulated Loading State**: Enhanced the authentication submit handler with a button disabled state, a loading indicator spinner, and success redirection timing before entering the dashboard workspaces.
+46: - **Demo Credentials Removal**: Completely removed all sandbox dev credentials markup block from the public production login card interface.
+47: - **Support Link Target**: Replaced the placeholder `#` link with a real `mailto:support@fundingeasy.in` action path.
+48: - **Password Visibility Control**: Embedded a toggle option ("Show/Hide") on the password input field.
+49: - **Trust Reassurance**: Added a premium secure check badge ("Secure access for verified founders, investors, and internal teams") below the welcome header.
+50: - **Artifact Investigation**: Checked and confirmed that the "Merlin overlay" was a browser extension/client-side artifact not present in the codebase.
+51: 
+52: ## Phase 7: Founder OS Dashboard Upgrades
+53: - **Lucide-Style SVG Icons**: Removed all raw emoji icons from navigation links and panels, replacing them with custom, clean vector SVG graphics.
+54: - **Visual Spacing Standards**: Implemented precise spacing tokens (18px card radius, 24px margins, neutral borders of `rgba(255,255,255,0.08)`, and card paddings) to normalize visual density.
+55: - **Action Header Rebuild**: Redesigned the header row using a two-column desktop template (stretching button gap rules to 12px) to fix buttons overlapping or wrapping into unstructured columns.
+56: - **Action Task Rows**: Overhauled the Action Center by introducing structured rows containing left-hand state chips, center task descriptions, metadata timestamps, and right-aligned button CTAs.
+57: - **Next-Action Hero Card**: Refactored the hero panel into a larger next-action board with 28px padding and a vertical 9:16 smartphone video placeholder frame.
+58: - **Normalized KPI Metric Grid**: Cleaned up metric cards by removing all raw separators (e.g. `---`), setting tabular numeric font treatments, and placing labels clearly above metadata lines.
+59: 
+60: ## Phase 8: Final Dashboard Spacing, Grammar & Icon Polish
+61: - **Header Action Button Spacing**: Increased the gap between `Preview Profile` and the primary action button to `16px` to prevent button crowding.
+62: - **Action Center Row Refinement**: Widened the row layout gap to `40px` and configured the details section with a `flex-grow: 1` wrapper. This pushes the `Review` action button cleanly to the right while ensuring the priority chip and metadata retain breathing room.
+63: - **Eradicated Remaining Emoji Emitters**: Replaced the video camera emoji `📹` in both the hero vertical preview frame and the elevator pitch file-upload cards with premium, custom inline SVGs. Replaced the feedback icons in the VC Portfolio modal state indicator with styled inline checkmark and cross SVGs.
+64: - **Grammar & Labeling Precision**: Corrected the metrics card remaining tasks readout to use conditional plural/singular grammar (`1 task remaining` vs `2 tasks remaining`). Cleaned up raise metric descriptors to read `"Seed Target Raise"` (or stage equivalent) instead of the drafty `"Seed Round expectation"`.
+65: - **Enhanced Layer Separation**: Expanded margins separating the Next-Action Hero Card, the KPI metrics grid, and the Action Center section to `40px` to give the console layers layout breathing room.
+66: 
+67: ## Phase 9: Separation & Action Hierarchy Overhaul
+68: - **Action Hierarchy & Separation**: Grouped actions on the active pages into primary, secondary, and critical alerts:
+69:   - Header actions like `Preview Profile` and `Sync Calendar` are styled as secondary controls (`btn-secondary`) to avoid competing with onboarding objectives.
+70:   - The header layout has been padded out to `48px` bottom margin and `32px` bottom padding to create clean whitespace.
+71: - **Premium Styled Blocker Cards**: Redesigned the publish blocker banner into a styled gradient card (`linear-gradient` warning/danger states) featuring a clear warning badge container, a structured subtitle detail, a glowing shadow, and a prominent primary action CTA (`Complete Checklist`) styled as a high-contrast brand button.
+72: - **Deliberate Meeting Checklist Deliverables**: Rebuilt the raw checkboxes in coordinated meetings into separate styled task card components, featuring structured padding (`12px 16px`), micro-interactive borders, hover backgrounds, and custom spacing.
+73: - **Meeting Cards Visual Rhythm**: Updated the meetings panel list items to use a matching `18px` border radius, subtle borders, and `40px` grid gaps to match other key cards.
+74: - **User Block Spacing**: Added breathing room to the user profile box at the bottom of the sidebar with expanded vertical paddings (`24px`).
+75: 
+76: ## Phase 10: Visual Detail Polish Iteration
+77: - **Header Action Separation**: Widened the layout gap separating `Preview Profile` and primary action buttons to `20px` to ensure they look like distinct controls.
+78: - **Action Center Chip Separation**: Repositioned the priority chips (`HIGH PRIORITY` labels) from the metadata row directly next to the task header titles in a flex wrap container, segregating urgency status from action buttons.
+79: - **Isolated Profile Section**: Styled the user profile sidebar container with a high-contrast dark visual backing (`rgba(15, 17, 23, 0.45)`), top border separator, and a `16px` margin offset from the navigation links.
+80: - **Copy Cleanups**: Refined fundraising targets to show `"Current round target"` and humanized the Diligence Vault support copy to read `"Pending requests from matched VCs"`.
+81: - **KPI Layout Density**: Expanded the KPI metrics grid layout gap to `24px` and increased card inner paddings to `28px` to ensure the core dashboard statistics breathe cleanly.
+82: 
+83: ## Phase 11: Dashboard Color Policy Alignment
+84: - **Strict Color Restraint Policy**: Re-balanced the dashboard visual components to follow the strict color logic (neutral body texts, active highlights and main CTAs in teal, verified status in green, warnings/drafts in amber, failed outcomes in danger):
+85:   - Sidebar active nav buttons now render in Funding Easy teal (`var(--brand-secondary)`) with a matching soft background indicator.
+86:   - Sidebar section labels (`COMMAND`, `DATA ROOM`, etc.) and user blocks now rely entirely on neutral and muted shades.
+87: - **Pipeline Color Normalization**:
+88:   - Restructured pipeline stage columns to be neutral, removing bright gold/accent borders. Only the final stage outcomes carry semantic colors (Closed Won -> soft green, Closed Lost -> soft red).
+89:   - Normalised fit scores (`94%`, `91%`, `88%`, etc.) to use a restrained teal color family instead of varying colors per scoring tier.
+90:   - Rebuilt pipeline urgency banners to style active and pending tasks in high-contrast teal backgrounds and links instead of competing red/orange banners.
+91: 
+92: ## Phase 12: Global Accent Alignment & Microcopy Cleanup
+93: - **Gold-to-Teal Accent Refactoring**:
+94:   - Replaced all raw hex representations of gold (`201, 162, 39`) with Funding Easy teal (`15, 107, 111`) globally in the view container markup.
+95:   - Substituted all remaining occurrences of `var(--brand-primary)` with `var(--brand-secondary)` inside cards, icons, active nav backdrops, buttons, progress donuts, and checklist symbols.
+96:   - Aligned category badges to use soft teal backgrounds and teal text labels.
+97: - **Copy Polish**:
+98:   - Renamed VDR modal metadata headers to `"Target Round Details"` (from `"Target Round Expectations"`) and changed draft placeholders like `"No valuation expectation set"` to `"No valuation set"`.
+99: 
+100: ## Phase 13: Pitch Center Subpage & Workflow Overhaul
+101: - **Pitch Center Branding & Navigation**:
+102:   - Implemented the breadcrumb row context: `Founder OS / Pitch Center` on the active tab page.
+103:   - Updated page headings and subtitles to specify `Pitch Center` with a dedicated subtitle: `Publish and manage your founder elevator video pitch.`.
+104:   - Added a non-breaking spacer to prevent `Preview Profile` and the primary CTA button from merging inside text-extractors.
+105: - **Publish Block System Alerts**:
+106:   - Upgraded the publish blocker card to a styled red/warning alert featuring a prominent `Action required` status badge, clear warning description ("Your profile cannot go live until a founder pitch video is uploaded."), and an aligned primary button CTA (`Complete checklist`).
+107: - **Premium File Upload Zone**:
+108:   - Built a split-layout card containing a left-hand dropzone area (including custom vector icons, upload prompts, explicit format allowances, and file limitations) and a right-hand mock player wrapper displaying the upload state.
+109: - **Compact Checklist Progress**:
+110:   - Re-designed the checklist cards to render 5 clean workflow rows showing task status badges (`Complete` vs `Incomplete`) underneath a standard `6px` linear progress bar.
+111: - ** recording Guidelines & Credibility**:
+112:   - Exchanged the unverified `40%` conversion statistic for safe, professional text: `Clear audio and framing improve pitch completion and comprehension.`
+113:   - Separated recording guidelines into two side-by-side cards (`Lighting & Audio` and `Deck Synchronization`) styled with custom SVGs and action links.
+114: 
+115: ## Phase 14: Investor Dashboard Render & LocalStorage Safeties
+116: - **Fault-Tolerant State Initialization**: Upgraded `init()` in `InvestorDashboardView.js` to perform deep merging of parsed `localStorage` objects with standard fallback structures (`normalizedDefaults`). If vital lists or objects are missing or corrupt, they are auto-hydrated with defaults instead of causing render failures.
+117: - **Robust Array Validation**: Added active validation checks to ensure critical states (`kpi`, `opportunities`, `alerts`, `deals`, `portfolioDeals`, `meetings`) are arrays before rendering. If any array property is compromised, the dashboard gracefully purges `localStorage` and falls back to a clean state.
+118: - **Render Engine Exception Shielding**: Wrapped the entire dashboard's `render()` method inside a `try/catch` safety net. If a paint or selector crash occurs, it now prints the stack trace inside the central workspace area and exposes an explicit **Reset Application State** CTA button to recover immediately.
+119: 
+120: ## Phase 15: Investor Command Center Overhaul (Enterprise Dashboard Redesign)
+121: - **Top Summary & Executive KPIs**: Replaced simple metrics with 6 dense executive metrics cards (New Matches, Deals in Review, Diligence Active, Meetings Today, SLA Risk Alerts, and Capital Committed) featuring relative trends, active status flags, and descriptions.
+122: - **Header Refinement**: Replaced the casual greeting with a formal title: **Investor Command Center** and added subtitle context ("Monitor pipeline velocity, diligence risk, founder responsiveness..."), plus a system health nominal check badge and sync indicator.
+123: - **Ranked Opportunities Table**: Upgraded the simple single-card top matches view to a rich table of thesis-aligned ranked matches (with fields for Company, Match Score, Stage, Check Size, and Centralized Access Matrix CTAs) displaying multiple items like Omega Shield, Zenith SaaS, and Acme Corp.
+124: - **Operational Risk Queue**: Redesigned the plain warnings list into a structured operational risk queue with severity badges (`URGENT`, `WARNING`, `BLOCKED`), due time metrics, assigned owner, and separate primary action buttons.
+125: - **Active Pipeline & Interactions Rail**: Integrated a multi-zone layout section displaying active pipeline health stage conversion cards, today's zoom meeting calendar context, and real-time watchlist/portfolio performance updates (e.g. Stripe, Nexus Health).
+126: 
+127: ## Phase 16: Layout Spacing and Enterprise Visual Polish
+128: - **Resolved Spacing / Run-Together Bugs**: Separated inline metadata, owner profiles, and CTAs inside the risk queue and header sections using structured flex grids and block wrappers (e.g. `lastSyncTimestamp` elements are isolated, headers have custom margins).
+129: - **Separated Firm Profile Mandate Chips**: Replaced duplicate tag joins inside the left-rail container with space-joined mapping outputs (`join(' ')`) and explicit grid gaps to ensure clear token separation for text extraction.
+130: - **Deepened Opportunities & Risk Queue**: Overhauled the raw warning block to a structured 4-column layout row (Company/Issue, Severity/Timing, Assignee, Actions). Upgraded the Ranked Opportunities list with Company Details, Thesis Matches, Stage Details, and unified Access Matrix CTAs.
+131: - **Structured Portfolio/Watchlist Separation**: Split the visually collapsed holdings block into two clearly separated modules: **Portfolio Performance** (active TVPI and scales) and **Watchlist Activity** (active sync calls and deck statuses).
+132: 
+133: ## Phase 17: Investor Dashboard Bug Fixing & Validation Audit
+134: - **Resolved Spacing / Run-Together Delimiters (Bug 1)**: Added a vertical delimiter `|` and proper gap margins to separate the `System Nominal` badge from the `Last synced` timestamp.
+135: - **Fixed SLA Risk alerts clipping (Bug 2)**: Standardized container styling (`min-height`, `overflow: visible`, `line-height`) for the SLA Risk Alerts KPI card to center the numeric value and prevent edge clipping.
+136: - **Widen Thesis Matches Columns (Bug 3)**: Set explicit column widths (`width: 32%`, `width: 18%`, `width: 25%`, `width: 25%`) and enabled text wrapping on the `Status / Stage` columns to eliminate truncation.
+137: - **Sidebar & Diligence Navigation Integration (Bug 4)**: Integrated a **Diligence (VDR)** navigation item under OPERATIONS in the left-rail sidebar navigation mapping to the pipeline view.
+138: - **Clarified SLA Risk Count context (Bug 5)**: Renamed the Diligence stage alert sub-label to `VDR overdue (1)` to prevent naming confusion with the global SLA Risk alerts.
+139: - **Watchlist Warning Indicators (Bug 6)**: Added unconfirmed status indicators (warning dots and `(Unconfirmed)` tags) to Watchlist Activity items associated with active risk alerts.
+140: - **Mandate Tag Consistency (Bug 7)**: Prefixed all profile mandate pills (e.g. `✦ FinTech`, `✦ AI/ML`) with consistent bullet symbols.
+141: - **Velocity Note Typography & Hierarchy (Bug 8)**: Bolded key metrics (`12.7 days` and `4.1 days faster`) and placed the `⚡` emoji inside a highlighted round icon container.
+142: - **Diligence Active KPI Consistency (Bug 9)**: Updated the Diligence Active KPI count to `3` to align with the `1 clear / 2 blocked` sub-data details.
+143: - **Removed Live UI Placeholders (Bug 10)**: Cleaned up and replaced remaining test placeholders (`Acme Corp`, `Jane Doe`, `John Doe`) with professional demo assets.
+144: - **Pipeline Stage Clarification (Bug 11)**: Renamed the widget header to "Pipeline Stage Distribution" to clarify that the counts represent parallel stages.
+145: - **Active Review KPI Label Correction (Bug 12)**: Changed the `+1 scheduled` leak on the Active Review pipeline stage distribution box to `+1 this week`.
+146: - **Interactive Avatar Dropdown Menu (Bug 13)**: Enhanced user avatar interactive controls, allowing click options for KYC status, Settings, and logouts.
+147: - **Connected Capital Committed KPI (Bug 14)**: Added click triggers linking the Capital Committed KPI card to the Portfolio section.
+148: - **Empty & Zero-State Handling (Bug 15)**: Added fallback zero-state markup renders for empty opportunities, watchlist items, and risk queue blocks.
+149: 
+The above content shows the entire, complete file contents of the requested file.
+

@@ -1,0 +1,50 @@
+﻿Created At: 2026-06-13T03:20:26Z
+Completed At: 2026-06-13T03:20:26Z
+File Path: `file:///C:/Users/user/.gemini/antigravity/scratch/funding-easy/js/views/InvestorDashboardView.js`
+Total Lines: 4361
+Total Bytes: 296644
+Showing lines 140 to 180
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+140:                 /* Utilities */
+141:                 h1, h2, h3, p { margin: 0; padding: 0; }
+142:                 .text-sm { font-size: 0.875rem; } .text-xs { font-size: 0.75rem; }
+143:                 .font-medium { font-weight: 500; } .font-semibold { font-weight: 600; }
+144:                 .text-muted { color: var(--inv-text-secondary); }
+145:                 .flex { display: flex; } .flex-col { display: flex; flex-direction: column; }
+146:                 .items-center { align-items: center; } .justify-between { justify-content: space-between; }
+147:                 .gap-2 { gap: 8px; } .gap-3 { gap: 12px; } .gap-4 { gap: 16px; }
+148:                 .p-4 { padding: 16px; } .p-6 { padding: 24px; }
+149:                 
+150:                 /* Buttons */
+151:                 .btn {
+152:                     padding: 8px 16px; border-radius: 6px; font-size: 0.875rem; font-weight: 600;
+153:                     cursor: pointer; border: 1px solid transparent; transition: all 0.2s;
+154:                     display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+155:                 }
+156:                 .btn-sm { padding: 6px 12px; font-size: 0.75rem; }
+157:                 .btn-primary { background: var(--inv-accent); color: #fff; }
+158:                 .btn-primary:hover { background: var(--inv-accent-hover); }
+159:                 .btn-outline { background: transparent; border-color: var(--inv-divider); color: var(--inv-text-primary); }
+160:                 .btn-outline:hover { background: var(--inv-surface-2); }
+161:                 .btn-success { background: rgba(94, 143, 99, 0.1); color: var(--inv-success); border-color: var(--inv-success); }
+162:                 .btn-danger { background: rgba(168, 92, 104, 0.1); color: var(--inv-error); border-color: var(--inv-error); }
+163: 
+164:                 /* Global Top Bar */
+165:                 .global-top-bar {
+166:                     position: absolute; top: 16px; right: 24px; z-index: 50; display: flex; gap: 16px; align-items: center;
+167:                 }
+168:                 .global-action-btn {
+169:                     width: 36px; height: 36px; border-radius: 50%; background: rgba(27, 34, 43, 0.8); backdrop-filter: blur(4px);
+170:                     border: 1px solid var(--inv-divider); display: flex; align-items: center; justify-content: center;
+171:                     cursor: pointer; color: var(--inv-text-primary); transition: all 0.2s; position: relative;
+172:                 }
+173:                 .global-action-btn:hover { background: var(--inv-surface-2); border-color: var(--inv-text-secondary); }
+174:                 .bell-badge {
+175:                     position: absolute; top: -2px; right: -2px; width: 10px; height: 10px; border-radius: 50%;
+176:                     background: var(--inv-premium); border: 2px solid var(--inv-bg);
+177:                 }
+178:                 .avatar-btn {
+179:                     width: 36px; height: 36px; border-radius: 50%; background: var(--inv-accent); display: flex;
+180:                     align-items: center; justify-content: center; font-weight: 600; font-size: 0.875rem; cursor: pointer;
+The above content does NOT show the entire file contents. If you need to view any lines of the file which were not shown to complete your task, call this tool again to view those lines.
+

@@ -1,0 +1,27 @@
+﻿Created At: 2026-06-13T03:20:30Z
+Completed At: 2026-06-13T03:20:31Z
+File Path: `file:///C:/Users/user/.gemini/antigravity/brain/017c2d6e-0c4a-460f-84ba-aa8def928e41/task.md`
+Total Lines: 67
+Total Bytes: 8280
+Showing lines 50 to 67
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+50: - `[x]` 50. Correct active review scheduled label leak (Bug 12).
+51: - `[x]` 51. Verify avatar click dropdown behavior (Bug 13).
+52: - `[x]` 52. Link Capital Committed KPI card to portfolio tab (Bug 14).
+53: - `[x]` 53. Implement zero-state handler blocks (Bug 15).- `[ ]` 54. Clean up all encoding mojibake and replace with clean standard emojis/SVGs in InvestorDashboardView.js.
+54: - `[ ]` 55. Restructure the sidebar to clearly segregate User Identity, Mandates, and Navigation.
+55: - `[ ]` 56. Add unread/pending notification and meeting badges in sidebar navigation.
+56: - `[ ]` 57. Upgrade Search into a keyboard-accessible Command Palette with entity routing.
+57: - `[ ]` 58. Build dynamic sector filtering at the top of the command center.
+58: - `[ ]` 59. Upgrade KPI scorecards to derive counts from normalized data schemas.
+59: - `[ ]` 60. Overhaul the Operational Risk Queue with snooze/reassign actions and clean columns.
+60: - `[ ]` 61. Upgrade Thesis Matches with matching criteria popover details and Team Notes inline editor.
+61: - `[ ]` 62. Enhance Portfolio view with detailed holding cards, TVPI/MOIC, and operating KPIs.
+62: - `[ ]` 63. Overhaul Watchlist tab with chronological activity logs and promotion paths.
+63: - `[ ]` 64. Refactor Active Deals Kanban with conversion benchmarks and time-in-stage metrics.
+64: - `[ ]` 65. Add meeting templates and checklist state persistence.
+65: - `[ ]` 66. Implement zero/empty-states globally for all widgets.
+66: - `[ ]` 67. Perform accessibility keyboard-focus check.
+67: 
+The above content does NOT show the entire file contents. If you need to view any lines of the file which were not shown to complete your task, call this tool again to view those lines.
+
