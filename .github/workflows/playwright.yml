@@ -35,11 +35,27 @@ jobs:
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
 
-      - name: Start local website
+      - name: Start local website with SPA fallback
         run: |
-          python3 -m http.server 4173 > /tmp/fundingeasy-server.log 2>&1 &
+          cat > /tmp/fundingeasy-spa-server.py <<'PY'
+          from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
+          from pathlib import Path
+
+          ROOT = Path.cwd()
+
+          class SPAHandler(SimpleHTTPRequestHandler):
+              def do_GET(self):
+                  requested = ROOT / self.path.lstrip('/').split('?', 1)[0]
+                  if not requested.is_file():
+                      self.path = '/index.html'
+                  return super().do_GET()
+
+          ThreadingHTTPServer(('127.0.0.1', 4173), SPAHandler).serve_forever()
+          PY
+          python3 /tmp/fundingeasy-spa-server.py > /tmp/fundingeasy-server.log 2>&1 &
           sleep 2
           curl --fail --silent --show-error http://127.0.0.1:4173/ > /dev/null
+          curl --fail --silent --show-error http://127.0.0.1:4173/signup > /dev/null
 
       - name: Run automated QA
         run: npx playwright test
