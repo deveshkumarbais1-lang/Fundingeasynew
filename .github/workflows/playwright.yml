@@ -62,3 +62,5 @@ jobs:
           name: playwright-test-results
           path: test-results/
           if-no-files-found: ignore
+
+      # QA branch regression run: keeps every test-fix commit executable in CI.
