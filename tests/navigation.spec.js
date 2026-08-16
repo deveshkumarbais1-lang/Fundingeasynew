@@ -17,8 +17,8 @@ test('main navigation links do not point to obvious dead placeholders', async ({
   }
 });
 
-test('unknown SPA route renders a 404/not-found state', async ({ page }) => {
+test('unknown SPA route renders a clear not-found state', async ({ page }) => {
   await page.goto('/');
   await page.evaluate(() => window.navigateTo('/this-route-should-not-exist-qa'));
-  await expect(page.locator('#app')).toContainText(/404|not found|page.*exist/i);
+  await expect(page.locator('#app')).toContainText(/404|not found|couldn.?t find that page|page.*exist/i);
 });
