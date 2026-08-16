@@ -1902,6 +1902,7 @@ export default class extends AbstractView {
                             <p>A private, KYC-verified matchmaking platform connecting founders with mandate-fit investors.</p>
                             <p>Funding Easy Technologies Pvt Ltd · India</p>
                             <p style="margin-top:8px;">support@fundingeasy.in</p>
+                            <p style="margin-top:4px;">devesh@fundingeasy.in</p>
                         </div>
                         <div>
                             <div class="fe-footer-heading">Product</div>
