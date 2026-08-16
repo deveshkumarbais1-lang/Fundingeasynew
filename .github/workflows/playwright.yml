@@ -58,25 +58,83 @@ jobs:
           curl --fail --silent --show-error http://127.0.0.1:4173/signup > /dev/null
 
       - name: Run automated QA
-        run: npx playwright test
-        env:
-          CI: true
-          BASE_URL: http://127.0.0.1:4173
+        id: playwright_tests
+        continue-on-error: true
+        run: |
+          set +e
+          npx playwright test --reporter=line,json > playwright-results.log 2>&1
+          TEST_EXIT_CODE=$?
+          set -e
 
-      - name: Upload Playwright report
+          cat playwright-results.log
+
+          node <<'NODE'
+          const fs = require('fs');
+          const path = 'test-results.json';
+          const log = fs.readFileSync('playwright-results.log', 'utf8');
+          let passed = 0;
+          let failed = 0;
+          let skipped = 0;
+
+          if (fs.existsSync(path)) {
+            try {
+              const report = JSON.parse(fs.readFileSync(path, 'utf8'));
+              const stats = report.stats || {};
+              passed = stats.expected || 0;
+              failed = (stats.unexpected || 0) + (stats.flaky || 0);
+              skipped = stats.skipped || 0;
+            } catch (e) {
+              console.log(`Could not parse ${path}: ${e.message}`);
+            }
+          }
+
+          if (!passed && !failed && !skipped) {
+            const match = log.match(/(\d+) passed(?:.*?\((\d+)ms\))?/);
+            if (match) passed = Number(match[1]);
+            const failedMatch = log.match(/(\d+) failed/);
+            const skippedMatch = log.match(/(\d+) skipped/);
+            if (failedMatch) failed = Number(failedMatch[1]);
+            if (skippedMatch) skipped = Number(skippedMatch[1]);
+          }
+
+          const total = passed + failed + skipped;
+          console.log('');
+          console.log('========================================');
+          console.log('       FundingEasy QA Test Summary');
+          console.log('========================================');
+          console.log(`Passed : ${passed}`);
+          console.log(`Failed : ${failed}`);
+          console.log(`Skipped: ${skipped}`);
+          console.log(`Total  : ${total}`);
+          console.log('========================================');
+
+          fs.writeFileSync('qa-summary.txt', `Passed: ${passed}\nFailed: ${failed}\nSkipped: ${skipped}\nTotal: ${total}\n`);
+          process.exit(TEST_EXIT_CODE);
+          NODE
+
+      - name: Publish QA summary to GitHub Actions
+        if: always()
+        run: |
+          if [ -f qa-summary.txt ]; then
+            cat qa-summary.txt >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "QA summary was not generated." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload Playwright report and QA summary
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
-          path: playwright-report/
+          path: |
+            playwright-report/
+            test-results.json
+            playwright-results.log
+            qa-summary.txt
           if-no-files-found: ignore
 
-      - name: Upload failure evidence
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-test-results
-          path: test-results/
-          if-no-files-found: ignore
+      - name: Fail workflow when QA tests fail
+        if: steps.playwright_tests.outcome == 'failure'
+        run: exit 1
 
       # QA branch regression run: keeps every test-fix commit executable in CI.
