@@ -175,14 +175,14 @@ export default class extends AbstractView {
                         
                         <form id="forgotPasswordForm" class="auth-form" novalidate>
                             <div class="form-group">
-                                <label for="resetEmailInput">Email Address</label>
-                                <input id="resetEmailInput" type="email" placeholder="name@company.com" required>
+                                <label for="email">Email Address</label>
+                                <input id="email" name="email" type="email" placeholder="name@company.com" required>
                             </div>
      
                             <div class="form-actions">
-                                <button type="submit" id="resetBtn" class="login-btn" disabled>
+                                <button type="submit" id="resetBtn" class="login-btn">
                                     <span class="spinner" id="resetSpinner"></span>
-                                    <span id="resetBtnText">Email reset link</span>
+                                    <span id="resetBtnText">Reset Password</span>
                                 </button>
                                 
                                 <p class="support-path">
@@ -200,16 +200,13 @@ export default class extends AbstractView {
         const form = document.getElementById('forgotPasswordForm');
         if (!form) return;
 
-        const emailInput = document.getElementById('resetEmailInput');
+        const emailInput = document.getElementById('email');
         const submitBtn = document.getElementById('resetBtn');
         const spinner = document.getElementById('resetSpinner');
         const btnText = document.getElementById('resetBtnText');
         const alert = document.getElementById('resetStateAlert');
 
-        emailInput.addEventListener('input', () => {
-            const val = emailInput.value.trim();
-            submitBtn.disabled = !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
-        });
+        
 
         form.addEventListener('submit', (e) => {
             e.preventDefault();
@@ -224,7 +221,7 @@ export default class extends AbstractView {
             // Simulate server-side reset token flow (neutral confirmation)
             setTimeout(() => {
                 spinner.style.display = 'none';
-                btnText.textContent = 'Email reset link';
+                btnText.textContent = 'Reset Password';
                 emailInput.value = '';
                 
                 alert.style.display = 'flex';
@@ -236,3 +233,4 @@ export default class extends AbstractView {
         });
     }
 }
+
