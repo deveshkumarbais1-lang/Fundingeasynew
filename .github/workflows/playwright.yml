@@ -9,6 +9,9 @@ on:
 permissions:
   contents: read
 
+env:
+  PLAYWRIGHT_VERSION: 1.55.0
+
 jobs:
   playwright:
     name: Playwright QA
@@ -23,19 +26,20 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install dependencies
-        run: npm install
+      - name: Install Playwright test runner
+        run: npx -y @playwright/test@${{ env.PLAYWRIGHT_VERSION }} --version
 
       - name: Install Playwright browser
-        run: npx playwright install --with-deps chromium
+        run: npx -y @playwright/test@${{ env.PLAYWRIGHT_VERSION }} install --with-deps chromium
 
       - name: Start local website
         run: |
           python3 -m http.server 4173 > /tmp/fundingeasy-server.log 2>&1 &
           sleep 2
+          curl --fail --silent --show-error http://127.0.0.1:4173/ > /dev/null
 
       - name: Run automated QA
-        run: npm test
+        run: npx -y @playwright/test@${{ env.PLAYWRIGHT_VERSION }} test
         env:
           CI: true
           BASE_URL: http://127.0.0.1:4173
