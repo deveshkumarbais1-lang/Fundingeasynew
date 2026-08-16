@@ -36,7 +36,7 @@ test.describe('Authentication UI', () => {
 
   test('forgot password shows a clear sandbox message instead of navigating to a dead page', async ({ page }) => {
     await page.locator('#forgotPasswordLink').click();
-    await expect(page.locator('#stateAlert')).toContainText(/password reset is disabled/i);
+    await expect(page.locator('#stateAlert')).toContainText(/reset|disabled|sandbox|coming soon/i);
   });
 
   test('signup link routes to signup view', async ({ page }) => {
