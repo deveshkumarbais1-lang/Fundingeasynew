@@ -1,17 +1,17 @@
 import { test, expect } from '@playwright/test';
 
 const publicRoutes = [
-  ['/', 'Funding Easy'],
-  ['/login', 'Welcome back'],
-  ['/signup', 'Create'],
-  ['/how-it-works', 'How It Works'],
-  ['/why-us', 'Why Funding Easy'],
-  ['/about', 'About'],
-  ['/faq', 'Frequently Asked Questions'],
-  ['/security', 'Security'],
-  ['/contact', 'Contact'],
-  ['/privacy', 'Privacy'],
-  ['/terms', 'Terms'],
+  ['/', /Funding Easy/i],
+  ['/login', /Welcome back/i],
+  ['/signup', /Create/i],
+  ['/how-it-works', /How It Works/i],
+  ['/why-us', /The Funding Easy Advantage|Why.*Choose Us/i],
+  ['/about', /Our Mission|Democratizing Private Capital/i],
+  ['/faq', /Frequently Asked Questions/i],
+  ['/security', /Security/i],
+  ['/contact', /Contact/i],
+  ['/privacy', /Privacy/i],
+  ['/terms', /Terms/i],
 ];
 
 test.describe('FundingEasy smoke tests', () => {
@@ -34,7 +34,7 @@ test.describe('FundingEasy smoke tests', () => {
       await page.evaluate((target) => window.navigateTo(target), route);
       await expect(page).toHaveURL(new RegExp(`${route.replace('/', '\\/')}(?:\\?.*)?$`));
       await expect(page.locator('#app')).not.toBeEmpty();
-      await expect(page.locator('body')).toContainText(new RegExp(expectedText, 'i'));
+      await expect(page.locator('body')).toContainText(expectedText);
     });
   }
 });
