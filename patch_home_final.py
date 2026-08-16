@@ -1,131 +1,75 @@
-import sys
+import re
+import os
 
-path = r'C:/Users/user/.gemini/antigravity/scratch/funding-easy/js/views/HomeView.js'
+filepath = r"C:\Users\user\.gemini\antigravity\scratch\funding-easy\js\views\HomeView.js"
 
-with open(path, 'r', encoding='utf-8') as f:
+with open(filepath, 'r', encoding='utf-8') as f:
     content = f.read()
 
-# 1. Hero
-content = content.replace("PLATFORM FOR VERIFIED FOUNDERS & VCS", "Private capital matching for verified founders & VCs.")
-content = content.replace("Private capital, matched with discipline.", "Move from qualified intro to active diligence in one permissioned funnel.")
-content = content.replace("Verified founders. Mandate-aligned investors. One permissioned workflow for introductions and diligence.", "Verified founders and mandate-aligned investors share a double opt-in workspace for intros, meetings, and secure diligence vaults—without public profile leakage or cold broker noise.")
+# 1. Route updates
+content = content.replace('href="/founder/start"', 'href="/founder/apply" data-link')
+content = content.replace('href="/signup?role=entrepreneur"', 'href="/founder/apply" data-link')
+content = content.replace('href="/signup?role=investor"', 'href="/investor/apply" data-link')
+content = content.replace('href="/investor/start"', 'href="/investor/apply" data-link')
 
-# 2. Hero CTAs
-content = content.replace(">Join as Founder<", ">Start as Founder<")
-content = content.replace(">Apply as Investor<", ">Start as Investor<")
+# 2. Security claims replacement
+old_sec_1 = 'AES-256 encryption at rest, TLS 1.3 in transit, AWS KMS, role-based permissions, and audit logging.'
+new_sec_1 = 'Data is encrypted in transit and at rest using controls documented in our Security Overview. Access to platform information is managed according to assigned user roles and permissions.'
+content = content.replace(old_sec_1, new_sec_1)
 
-# 3. Funnel section "so that..."
-content = content.replace(
-    "Identity, entity, and mandate verification required before accessing the network.",
-    "Identity, entity, and readiness checks are completed before founders and investors can participate in the network, so conversations start past basic approvals and into actual terms."
-)
-content = content.replace(
-    "Introductions driven by stage, sector, and check-size criteria, not cold outreach.",
-    "Introductions are generated only when stage, sector, and check-size criteria align on both sides, reducing time spent on misaligned conversations."
-)
-content = content.replace(
-    "Double opt-in workflow for meetings and secure diligence vault access.",
-    "Meetings and diligence milestones move through one unified, permissioned workflow, instead of being lost in email threads and shared drives."
-)
+old_sec_2 = 'Only approved founders and investors can enter the network.'
+new_sec_2 = 'Access to the network is subject to FundingEasy’s onboarding and approval process.'
+content = content.replace(old_sec_2, new_sec_2)
 
-# 4. "Quieter path" narrative
-content = content.replace(
-    "Funding Easy provides a secure, encrypted matching environment that eliminates cold broker spam and public data exposure.",
-    "Funding Easy replaces cold broker spam and public data exposure with a controlled, double opt-in capital matching workspace."
-)
-content = content.replace(
-    "Introductions are mediated, and progress milestones are backed by clear expectations on response and follow-up.",
-    "Each introduction carries shared expectations on response times and next steps, so matches either move forward or close out—without lingering in inboxes."
-)
+old_sec_3 = '<div style="font-weight: 600; color: var(--text); font-size: 1.1rem;">Verified participants</div>'
+new_sec_3 = '<div style="font-weight: 600; color: var(--text); font-size: 1.1rem;">Participant Review</div>'
+content = content.replace(old_sec_3, new_sec_3)
 
-# 5. Feature trio
-content = content.replace(
-    "Sensitive files are unlocked only by mutual agreement.",
-    "Sensitive files are unlocked only by mutual agreement. Founders keep cap tables and models off public platforms until both sides agree to proceed, preserving round confidentiality."
-)
-content = content.replace(
-    "Funding Easy generates introductions only when founder and investor criteria show strong mandate alignment.",
-    "Funding Easy generates introductions only when founder and investor criteria show strong mandate alignment. Investors see fewer but more relevant introductions that match their ticket sizes and themes, reducing triage time."
-)
-content = content.replace(
-    "Auto-scheduling and coordination milestones help introductions stay active, so promising cases do not stall in inboxes.",
-    "Auto-scheduling and coordination milestones help introductions stay active. Introductions have built-in follow-up expectations and scheduling nudges so promising cases don’t stall at ‘we should talk.’"
-)
+# 3. Traction stats removal
+old_stats = '''                            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 48px; text-align: center; margin-bottom: 72px;">
+                                <div>
+                                    <div style="font-size: 3.5rem; font-family: 'Lora', serif; color: var(--accent); margin-bottom: 8px;">120+<span style="color: var(--text-muted); font-size: 1.5rem; vertical-align: super;">*</span></div>
+                                    <div style="font-size: 1.1rem; color: var(--text); font-weight: 500; margin-bottom: 4px;">Verified Founders</div>
+                                </div>
+                                <div style="position: relative;">
+                                    <div style="position: absolute; left: -24px; top: 20%; bottom: 20%; width: 1px; background: linear-gradient(to bottom, transparent, var(--border), transparent);"></div>
+                                    <div style="font-size: 3.5rem; font-family: 'Lora', serif; color: var(--accent); margin-bottom: 8px;">85+</div>
+                                    <div style="font-size: 1.1rem; color: var(--text); font-weight: 500; margin-bottom: 4px;">Active Mandates</div>
+                                    <div style="position: absolute; right: -24px; top: 20%; bottom: 20%; width: 1px; background: linear-gradient(to bottom, transparent, var(--border), transparent);"></div>
+                                </div>
+                                <div>
+                                    <div style="font-size: 3.5rem; font-family: 'Lora', serif; color: var(--text); margin-bottom: 8px; opacity: 0.9;">~3<span style="font-size: 1.5rem; vertical-align: super;">wks</span></div>
+                                    <div style="font-size: 1.1rem; color: var(--text); font-weight: 500; margin-bottom: 4px;">Median Time to Term Sheet</div>
+                                </div>
+                            </div>'''
 
-# 6. Outcomes
-content = content.replace(
-    "Algorithmic mandate matching and integrated scheduling compress weeks of back-and-forth into structured milestones.",
-    "Faster match-to-diligence progression (weeks of email compressed into structured days)."
-)
+new_stats = '''                            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 48px; text-align: center; margin-bottom: 72px;">
+                                <div>
+                                    <div style="font-size: 2.5rem; font-family: 'Lora', serif; color: var(--accent); margin-bottom: 8px;">Verified</div>
+                                    <div style="font-size: 1.1rem; color: var(--text); font-weight: 500; margin-bottom: 4px;">Founders</div>
+                                </div>
+                                <div style="position: relative;">
+                                    <div style="position: absolute; left: -24px; top: 20%; bottom: 20%; width: 1px; background: linear-gradient(to bottom, transparent, var(--border), transparent);"></div>
+                                    <div style="font-size: 2.5rem; font-family: 'Lora', serif; color: var(--accent); margin-bottom: 8px;">Active</div>
+                                    <div style="font-size: 1.1rem; color: var(--text); font-weight: 500; margin-bottom: 4px;">Mandates</div>
+                                    <div style="position: absolute; right: -24px; top: 20%; bottom: 20%; width: 1px; background: linear-gradient(to bottom, transparent, var(--border), transparent);"></div>
+                                </div>
+                                <div>
+                                    <div style="font-size: 2.5rem; font-family: 'Lora', serif; color: var(--text); margin-bottom: 8px; opacity: 0.9;">Matches</div>
+                                    <div style="font-size: 1.1rem; color: var(--text); font-weight: 500; margin-bottom: 4px;">Facilitated</div>
+                                </div>
+                            </div>'''
+content = content.replace(old_stats, new_stats)
 
-content = content.replace(
-    "Intros are based on mandate filters rather than cold outreach, reducing time spent on misaligned conversations.",
-    "Higher-quality opt-in matches, with intros driven by mandate filters instead of cold outreach."
-)
+# 4. Success fee references
+content = re.sub(r'A 5-7% success fee is charged only after successful funding', 'A success fee applies subject to successful funding matching', content)
+content = re.sub(r'A 5-7% success fee applies only on capital closed', 'A success fee applies subject to capital closed', content)
+content = re.sub(r'&check; 5-7% success fee', '&check; Transparent success fee', content)
+content = content.replace('5-7% success fee', 'success fee')
 
-content = content.replace(
-    "Investors spend more time evaluating aligned opportunities and less time triaging unqualified inbound.",
-    "Less manual sourcing drag, so investors spend more time evaluating aligned opportunities and less time triaging unqualified inbound."
-)
+# 5. SOC 2 and Stripe Identity (if they exist)
+content = content.replace('SOC 2 Type II', 'Secure Platform')
+content = content.replace('Stripe Identity', 'Standard Identity Verification')
 
-content = content.replace(
-    "The network is designed for institutional demand and supply, not spray-and-pray volume.",
-    "Meaningful capital matched, with a network designed for institutional round sizes, not spray-and-pray volume."
-)
-
-# 7. Testimonials
-content = content.replace(
-    "Partner at Apex Syndicate",
-    "Partner at Apex Syndicate<br><span style='color:#3A7563; font-weight:600; font-size:0.75rem; text-transform:uppercase;'>Mandate-aligned sourcing</span>"
-)
-content = content.replace(
-    "Founder at FinFlow",
-    "Founder at FinFlow<br><span style='color:#3A7563; font-weight:600; font-size:0.75rem; text-transform:uppercase;'>Confidential, controlled fundraising</span>"
-)
-content = content.replace(
-    "Managing Director at Oakwood Equity",
-    "Managing Director at Oakwood Equity<br><span style='color:#3A7563; font-weight:600; font-size:0.75rem; text-transform:uppercase;'>Structured diligence handoffs</span>"
-)
-content = content.replace(
-    "Founder at SynthOS",
-    "Founder at SynthOS<br><span style='color:#3A7563; font-weight:600; font-size:0.75rem; text-transform:uppercase;'>Verified, institution-ready founders</span>"
-)
-
-# 8. Pricing framing line
-content = content.replace(
-    "Transparent pricing for institutional discipline.</p>",
-    "Transparent pricing for institutional discipline.</p>\n                                    <p style=\"font-size: 1.1rem; color: #8E959E; max-width: 600px; margin: 0 auto; line-height: 1.6;\">We align fees with institutional behavior: founders pay only on completed transactions, investors subscribe for mandate-based deal flow and workflow.</p>"
-)
-
-# 9. Enrollment
-content = content.replace(
-    "Raise with more control.",
-    "Raise with more control, or source with more discipline."
-)
-content = content.replace(
-    "Join a growing network of institutional founders and accredited investors. Get verified and begin mandate-aligned matching today.",
-    "Get verified once, set your mandate, and move from qualified intro to active diligence in a controlled, double opt-in workspace."
-)
-content = content.replace(
-    """<p style="font-size: 0.85rem; color: rgba(250, 248, 245, 0.7); margin-bottom: 36px; font-weight: 500; letter-spacing: 0.02em;">
-                                Verification is designed to be fast, with no credit card required to begin matching.
-                            </p>""",
-    ""
-)
-
-# Replacing the bottom CTAs exactly:
-bottom_cta_old = """                            <div class="flex justify-center">
-                                <a href="/signup" class="btn btn-light" style="padding: 16px 36px;" data-link>Get Started Now</a>
-                            </div>"""
-
-bottom_cta_new = """                            <div class="flex justify-center" style="gap: 16px;">
-                                <a href="/signup?role=entrepreneur" class="btn btn-primary" style="padding: 16px 36px;" data-link>Start as Founder</a>
-                                <a href="/signup?role=investor" class="btn btn-secondary" style="padding: 16px 36px;" data-link>Start as Investor</a>
-                            </div>"""
-
-content = content.replace(bottom_cta_old, bottom_cta_new)
-
-with open(path, 'w', encoding='utf-8') as f:
+with open(filepath, 'w', encoding='utf-8') as f:
     f.write(content)
-
-print("HomeView.js patched successfully.")

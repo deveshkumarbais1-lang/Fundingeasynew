@@ -1861,10 +1861,13 @@ export default class InvestorDashboardView extends AbstractView {
                 main.innerHTML = this.getWatchlistHtml();
                 rail.innerHTML = this.getRightRailHtml();
                 this.attachListListeners();
-            } else if (this.state.activeTab === 'deals') {
+                        } else if (this.state.activeTab === 'deals') {
                 main.innerHTML = this.getKanbanHtml();
                 rail.innerHTML = this.getRightRailHtml();
                 this.attachListListeners();
+            } else if (this.state.activeTab === 'vdr') {
+                main.innerHTML = this.getVdrHtml();
+                if (this.attachVdrListeners) this.attachVdrListeners();
             } else if (this.state.activeTab === 'portfolio') {
                 main.innerHTML = this.getPortfolioHtml();
             } else if (this.state.activeTab === 'insights') {
@@ -1968,7 +1971,151 @@ export default class InvestorDashboardView extends AbstractView {
 
     // --- 3. VIEW TEMPLATES ---
 
+    getVdrHtml() {
+        const deal = this.state.deals.find(d => d.id === this.state.selectedDealId);
+        if (!deal) {
+            return `
+                <div class="view-header" style="margin-bottom: 24px;">
+                    <h1 style="font-size: 1.5rem; font-weight: 600; color: var(--inv-text-primary);">Data Room (VDR)</h1>
+                    <p class="text-sm text-muted mt-1">Select a deal to view its data room.</p>
+                </div>
+            `;
+        }
+
+        const auditLogs = [
+            { user: 'Jane Sterling', action: 'Downloaded', doc: 'Q2_Financials.xlsx', time: '10 mins ago' },
+            { user: 'Mike Operations', action: 'Viewed', doc: 'Cap_Table.pdf', time: '2 hours ago' },
+            { user: 'Founder (System)', action: 'Uploaded', doc: 'HIPAA_Compliance.pdf', time: '1 day ago' }
+        ];
+
+        const permissions = [
+            { user: 'Jane Sterling (You)', role: 'Admin', access: 'Full Access' },
+            { user: 'Mike Operations', role: 'Analyst', access: 'View Only' },
+            { user: 'Legal Counsel', role: 'External', access: 'Revoked' }
+        ];
+
+        return `
+            <div class="view-header flex justify-between items-center" style="margin-bottom: 24px;">
+                <div>
+                    <h1 style="font-size: 1.5rem; font-weight: 600; color: var(--inv-text-primary);">Data Room: ${deal.name}</h1>
+                    <p class="text-sm text-muted mt-1">Manage permissions, view audit logs, and review sensitive documents.</p>
+                </div>
+                <button class="btn btn-outline btn-sm action-btn" data-action="back-to-deals" style="border-color: var(--inv-divider);">â† Back to Deals</button>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px; padding-bottom: 32px;">
+                <!-- Main VDR Content -->
+                <div style="display: flex; flex-direction: column; gap: 24px;">
+                    
+                    <div style="background: var(--inv-surface); border: 1px solid var(--inv-divider); border-radius: 8px; padding: 20px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 16px; align-items: center;">
+                            <h3 class="font-semibold" style="font-size: 1rem; color: var(--inv-text-primary);">ðŸ“ Document Repository</h3>
+                            <button class="btn btn-primary btn-sm action-btn" data-action="vdr-request-doc">Request Document</button>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                            ${(deal.vdrFiles || []).map(f => `
+                                <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: rgba(255,255,255,0.02); border: 1px solid var(--inv-divider); border-radius: 6px;">
+                                    <div style="display: flex; gap: 12px; align-items: center;">
+                                        <div style="font-size: 1.5rem;">${f.name.endsWith('.pdf') ? 'ðŸ“„' : 'ðŸ“Š'}</div>
+                                        <div>
+                                            <div style="font-weight: 600; color: var(--inv-text-primary); font-size: 0.85rem;">${f.name}</div>
+                                            <div style="font-size: 0.7rem; color: var(--inv-text-secondary);">${f.state === 'unlocked' ? 'âœ… Verified' : 'âš ï¸ Missing / Stale'}</div>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <button class="btn btn-outline btn-xs action-btn" data-action="vdr-view" data-file="${f.name}" style="padding: 4px 8px; font-size: 0.7rem;">View</button>
+                                    </div>
+                                </div>
+                            `).join('')}
+                            ${(!deal.vdrFiles || deal.vdrFiles.length === 0) ? `<div class="text-muted text-sm text-center py-4">No documents available.</div>` : ''}
+                        </div>
+                    </div>
+
+                    <div style="background: var(--inv-surface); border: 1px solid var(--inv-divider); border-radius: 8px; padding: 20px;">
+                        <h3 class="font-semibold mb-4" style="font-size: 1rem; color: var(--inv-text-primary);">ðŸ“œ Audit Logs</h3>
+                        <table style="width: 100%; border-collapse: collapse; font-size: 0.8rem; text-align: left;">
+                            <thead>
+                                <tr style="border-bottom: 1px solid var(--inv-divider); color: var(--inv-text-secondary);">
+                                    <th style="padding: 8px 4px;">User</th>
+                                    <th style="padding: 8px 4px;">Action</th>
+                                    <th style="padding: 8px 4px;">Document</th>
+                                    <th style="padding: 8px 4px;">Time</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${auditLogs.map(log => `
+                                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                        <td style="padding: 10px 4px; color: var(--inv-text-primary); font-weight: 500;">${log.user}</td>
+                                        <td style="padding: 10px 4px;">
+                                            <span style="background: ${log.action === 'Downloaded' ? 'rgba(59,130,246,0.1)' : log.action === 'Uploaded' ? 'rgba(16,185,129,0.1)' : 'rgba(255,255,255,0.05)'}; color: ${log.action === 'Downloaded' ? '#3b82f6' : log.action === 'Uploaded' ? '#10b981' : 'var(--inv-text-secondary)'}; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem;">
+                                                ${log.action}
+                                            </span>
+                                        </td>
+                                        <td style="padding: 10px 4px; color: var(--inv-text-secondary);">${log.doc}</td>
+                                        <td style="padding: 10px 4px; color: var(--inv-text-secondary); font-size: 0.7rem;">${log.time}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Right Rail: Permissions -->
+                <div style="display: flex; flex-direction: column; gap: 24px;">
+                    <div style="background: var(--inv-surface); border: 1px solid var(--inv-divider); border-radius: 8px; padding: 20px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 16px; align-items: center;">
+                            <h3 class="font-semibold" style="font-size: 1rem; color: var(--inv-text-primary);">ðŸ” Permissions</h3>
+                            <button class="btn btn-outline btn-sm action-btn" data-action="vdr-invite">Invite</button>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                            ${permissions.map(p => `
+                                <div style="display: flex; flex-direction: column; gap: 4px; padding-bottom: 12px; border-bottom: 1px dashed var(--inv-divider);">
+                                    <div style="display: flex; justify-content: space-between;">
+                                        <span style="font-weight: 600; color: var(--inv-text-primary); font-size: 0.85rem;">${p.user}</span>
+                                        <span style="font-size: 0.7rem; color: var(--inv-text-secondary);">${p.role}</span>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                                        <span style="font-size: 0.75rem; color: ${p.access === 'Revoked' ? 'var(--inv-error)' : 'var(--inv-success)'};">${p.access}</span>
+                                        <button class="btn btn-outline btn-xs action-btn" data-action="vdr-edit-perm" style="padding: 2px 6px; font-size: 0.65rem; border-color: var(--inv-divider);">Edit</button>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div style="margin-top: 16px;">
+                            <button class="btn btn-outline action-btn" data-action="vdr-revoke-all" style="width: 100%; color: var(--inv-error); border-color: rgba(239, 68, 68, 0.3); font-size: 0.75rem;">Revoke External Access</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    attachVdrListeners() {
+        document.querySelectorAll('.action-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const action = btn.dataset.action;
+                if (action === 'back-to-deals') {
+                    this.state.activeTab = 'vdr';
+                    this.saveStateToLocalStorage();
+                    this.render();
+                } else if (action === 'vdr-revoke-all') {
+                    if(confirm("Are you sure you want to revoke all external access?")) {
+                        this.showToast("All external access revoked.", "warning");
+                    }
+                } else if (action === 'vdr-invite') {
+                    this.showToast("Invite modal opened.");
+                } else if (action === 'vdr-edit-perm') {
+                    this.showToast("Edit permissions modal opened.");
+                } else if (action === 'vdr-view') {
+                    this.showToast(`Opening document: ${btn.dataset.file}`);
+                }
+            });
+        });
+    }
+
     getHomeHtml() {
+
         const activeSector = this.state.homeFilterSector || 'All';
         const sectors = ['All', 'FinTech', 'Cybersecurity', 'SaaS', 'HealthTech', 'ClimateTech'];
         
@@ -2698,14 +2845,21 @@ export default class InvestorDashboardView extends AbstractView {
         let scroller = `<div class="feed-scroller" id="feedScroller" style="height: calc(100vh - 120px);">`;
         deals.forEach((d, idx) => {
             const isSelected = this.state.selectedDealId === d.id || (!this.state.selectedDealId && idx === 0);
-            // VDR state badge
+                        // VDR state badge - Outcome-Oriented Gating Labels
             let vaultBadge = '';
             if (d.vaultState === 'unlocked') {
-                vaultBadge = `<span class="badge badge-success" style="padding: 3px 10px; font-size: 0.65rem; white-space: nowrap;">🗂️ VDR Ready</span>`;
+                vaultBadge = `<span class="badge badge-success" style="padding: 3px 10px; font-size: 0.65rem; white-space: nowrap;">ðŸ—‚ï¸ VDR Available</span>`;
             } else if (d.vaultState === 'requested') {
-                vaultBadge = `<span class="badge badge-warning" style="padding: 3px 10px; font-size: 0.65rem; white-space: nowrap;">⏳ VDR Requested</span>`;
+                vaultBadge = `<span class="badge badge-warning" style="padding: 3px 10px; font-size: 0.65rem; white-space: nowrap;">â³ VDR Access Requested</span>`;
             } else {
-                vaultBadge = `<span class="badge badge-secondary" style="padding: 3px 10px; font-size: 0.65rem; white-space: nowrap; background: rgba(255,255,255,0.05); color: var(--inv-text-secondary); border: 1px solid var(--inv-divider);">🔐 VDR Gated</span>`;
+                const missingCount = d.diligenceMetrics.missingFiles.length;
+                if (missingCount > 0) {
+                    vaultBadge = `<span class="badge badge-secondary" style="padding: 3px 10px; font-size: 0.65rem; white-space: nowrap; background: rgba(255,255,255,0.05); color: var(--inv-text-secondary); border: 1px solid var(--inv-divider);">âš ï¸ ${missingCount} Diligence Items Needed</span>`;
+                } else if (d.diligenceMetrics.staleDocs.length > 0) {
+                    vaultBadge = `<span class="badge badge-secondary" style="padding: 3px 10px; font-size: 0.65rem; white-space: nowrap; background: rgba(255,255,255,0.05); color: var(--inv-text-secondary); border: 1px solid var(--inv-divider);">â³ ${d.diligenceMetrics.staleDocs.length} Documents Need Refresh</span>`;
+                } else {
+                    vaultBadge = `<span class="badge badge-secondary" style="padding: 3px 10px; font-size: 0.65rem; white-space: nowrap; background: rgba(255,255,255,0.05); color: var(--inv-text-secondary); border: 1px solid var(--inv-divider);">ðŸ” VDR Gated</span>`;
+                }
             }
 
             // Trust badge and taxonomy definitions
@@ -2717,204 +2871,81 @@ export default class InvestorDashboardView extends AbstractView {
             // VDR Button
             let vdrButtonHtml = '';
             if (d.vaultState === 'locked') {
-                vdrButtonHtml = `<button class="btn btn-outline action-btn" data-action="request_vdr" data-id="${d.id}" style="flex: 1.5; padding: 10px 14px; border-color: var(--inv-warning); color: var(--inv-warning); font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap;"> Request VDR Access </button>`;
+                vdrButtonHtml = `<button class="btn btn-outline action-btn" data-action="request_vdr" data-id="${d.id}" style="padding: 6px 14px; border-color: var(--inv-warning); color: var(--inv-warning); font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap;"> Request Access </button>`;
             } else if (d.vaultState === 'requested') {
-                vdrButtonHtml = `<button class="btn btn-outline action-btn" data-action="nudge-vdr" data-id="${d.id}" style="flex: 1.5; padding: 10px 14px; border-color: var(--inv-warning); color: var(--inv-warning); font-size: 0.72rem; font-weight: 600; text-transform: uppercase; opacity: 0.8; letter-spacing: 0.5px; white-space: nowrap;"> Nudge for VDR </button>`;
+                vdrButtonHtml = `<button class="btn btn-outline action-btn" data-action="nudge-vdr" data-id="${d.id}" style="padding: 6px 14px; border-color: var(--inv-warning); color: var(--inv-warning); font-size: 0.72rem; font-weight: 600; text-transform: uppercase; opacity: 0.8; letter-spacing: 0.5px; white-space: nowrap;"> Nudge Founder </button>`;
             } else {
-                vdrButtonHtml = `<button class="btn btn-outline action-btn" data-action="open_vdr" data-id="${d.id}" style="flex: 1.5; padding: 10px 14px; border-color: var(--inv-success); color: var(--inv-success); font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap;"> VDR Unlocked </button>`;
+                vdrButtonHtml = `<button class="btn btn-outline action-btn" data-action="open_vdr" data-id="${d.id}" style="padding: 6px 14px; border-color: var(--inv-success); color: var(--inv-success); font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap;"> Enter Data Room </button>`;
             }
 
             scroller += `
-                <div class="startup-snap-card" data-id="${d.id}">
-                    <div class="startup-card-inner ${isSelected ? 'selected' : ''}">
-                        <div class="video-section" style="position: relative; width: 320px; flex-shrink: 0; background: #000; display: flex; align-items: center; justify-content: center;" data-id="${d.id}">
-                            <img src="${d.thumb}" class="video-thumbnail" style="width: 100%; height: 100%; object-fit: cover;">
-                            
-                            <!-- Video Watch Progress Overlay Badge -->
-                            <div class="watch-progress-badge" style="position: absolute; top: 12px; left: 12px; background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(4px); color: var(--inv-text-secondary); border: 1px solid var(--inv-divider); padding: 4px 8px; border-radius: 4px; font-size: 0.65rem; font-weight: 500; display: flex; align-items: center; gap: 4px; z-index: 4;">
-                                📺 ${d.videoStats}
+                <div class="startup-snap-card" data-id="${d.id}" style="background: var(--inv-surface); border: 1px solid var(--inv-divider); border-radius: 8px; margin-bottom: 16px; overflow: hidden; transition: all 0.2s;">
+                    <!-- DECISION LAYER (Always Visible) -->
+                    <div style="padding: 16px 20px; display: flex; justify-content: space-between; align-items: flex-start; cursor: pointer;" onclick="document.getElementById('evidence-${d.id}').style.display = document.getElementById('evidence-${d.id}').style.display === 'none' ? 'block' : 'none';">
+                        <div style="flex: 1;">
+                            <div class="flex items-center gap-2 mb-1">
+                                <h2 style="font-size: 1.2rem; font-weight: 600; color: var(--inv-text-primary); margin: 0;">${d.name}</h2>
+                                <span style="background: rgba(201, 162, 39, 0.08); border: 1px solid var(--inv-premium); color: var(--inv-premium); padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: 600;"> â˜… ${d.match}% Fit </span>
+                                <span style="background: rgba(255,255,255,0.04); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--inv-divider); color: var(--inv-text-secondary); font-size: 0.65rem;">${d.sector}</span>
+                                <span style="background: rgba(94, 143, 99, 0.1); color: var(--inv-success); border: 1px solid rgba(94,143,99,0.2); padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: 600;"> âœ“ ${trustBadgeText} </span>
                             </div>
+                            <div class="text-xs text-muted mb-3">${d.founder} â€¢ ${d.location}</div>
+                            
+                            <div style="display: flex; gap: 16px; font-size: 0.75rem; color: var(--inv-text-primary); align-items: center;">
+                                <div><span class="text-muted">Ask:</span> <strong>${d.ask}</strong></div>
+                                <div><span class="text-muted">Revenue:</span> <strong style="color: var(--inv-success);">${d.revenue}</strong> <span class="text-xs opacity-75">(${d.growth})</span></div>
+                                <div><span class="text-muted">Model:</span> <strong>${d.businessModel}</strong></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Primary Status / Action / Gating Label -->
+                        <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px;" onclick="event.stopPropagation();">
+                            ${vaultBadge}
+                            ${vdrButtonHtml}
+                            <div style="font-size: 0.65rem; color: var(--inv-text-secondary); margin-top: 4px; cursor: pointer;" onclick="document.getElementById('evidence-${d.id}').style.display = document.getElementById('evidence-${d.id}').style.display === 'none' ? 'block' : 'none';">Click to expand evidence â–¼</div>
+                        </div>
+                    </div>
 
-                            <div class="play-btn-overlay" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 50px; height: 50px; border-radius: 50%; background: rgba(0,0,0,0.6); border: 2px solid #fff; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 1.5rem; transition: background 0.2s; cursor: pointer; z-index: 5;">
-                                ▶
+                    <!-- EXPANDABLE EVIDENCE LAYER -->
+                    <div id="evidence-${d.id}" style="display: none; border-top: 1px solid var(--inv-divider); padding: 16px 20px; background: rgba(0,0,0,0.15);">
+                        <p style="font-size: 0.85rem; color: var(--inv-text-primary); line-height: 1.5; margin-bottom: 16px;"><strong>Investment Thesis:</strong> ${d.thesis}</p>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                            <!-- Video Section -->
+                            <div class="video-section" style="position: relative; width: 100%; height: 160px; background: #000; border-radius: 6px; overflow: hidden;" data-id="${d.id}">
+                                <img src="${d.thumb}" class="video-thumbnail" style="width: 100%; height: 100%; object-fit: cover;">
+                                <div class="play-btn-overlay" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 40px; height: 40px; border-radius: 50%; background: rgba(0,0,0,0.6); border: 2px solid #fff; display: flex; align-items: center; justify-content: center; color: #fff; cursor: pointer; z-index: 5;">â–¶</div>
+                                <div style="position: absolute; bottom: 8px; left: 8px; background: rgba(0,0,0,0.7); color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 0.6rem;">${d.videoStats || 'Pitch Video'}</div>
                             </div>
-                            <video class="pitch-video-element" style="display: none; width: 100%; height: 100%; object-fit: cover; background: #000;" src="https://assets.mixkit.co/videos/preview/mixkit-business-people-working-together-in-office-39902-large.mp4" playsinline></video>
                             
-                            <div class="video-controls-overlay" style="display: none; position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(180deg, transparent, rgba(0,0,0,0.85)); padding: 8px; flex-direction: column; gap: 4px; z-index: 10;">
-                                <div style="height: 4px; background: rgba(255,255,255,0.3); border-radius: 2px; cursor: pointer; position: relative;" class="video-progress-bar-container">
-                                    <div style="height: 100%; width: 0%; background: var(--inv-accent); border-radius: 2px;" class="video-progress-fill"></div>
+                            <!-- Diligence Checklist Widget -->
+                            <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--inv-divider); border-radius: 6px; padding: 12px; font-size: 0.75rem; display: flex; flex-direction: column; justify-content: center;">
+                                <div style="font-weight: 600; color: var(--inv-text-secondary); text-transform: uppercase; font-size: 0.65rem; margin-bottom: 12px; letter-spacing: 0.5px;"> Diligence Checklist Status </div>
+                                <div style="display: flex; gap: 8px; width: 100%;">
+                                    <div style="flex: 1; background: rgba(94, 143, 99, 0.08); border: 1px solid rgba(94, 143, 99, 0.2); padding: 10px 8px; border-radius: 4px; text-align: center; color: var(--inv-success);">
+                                        <div style="font-size: 0.58rem; text-transform: uppercase; opacity: 0.8; margin-bottom: 4px;"> Verified </div>
+                                        <div style="font-size: 1rem; font-weight: bold;"> âœ” ${d.diligenceMetrics.completedReviews} </div>
+                                    </div>
+                                    <div style="flex: 1; background: ${d.diligenceMetrics.staleDocs.length > 0 ? 'rgba(245, 158, 11, 0.08)' : 'rgba(255,255,255,0.01)'}; border: 1px solid ${d.diligenceMetrics.staleDocs.length > 0 ? 'rgba(245, 158, 11, 0.2)' : 'var(--inv-divider)'}; padding: 10px 8px; border-radius: 4px; text-align: center; color: ${d.diligenceMetrics.staleDocs.length > 0 ? 'var(--inv-warning)' : 'var(--inv-text-secondary)'}; opacity: ${d.diligenceMetrics.staleDocs.length > 0 ? '1' : '0.4'};">
+                                        <div style="font-size: 0.58rem; text-transform: uppercase; opacity: 0.8; margin-bottom: 4px;"> Stale </div>
+                                        <div style="font-size: 1rem; font-weight: bold;"> â³ ${d.diligenceMetrics.staleDocs.length} </div>
+                                    </div>
+                                    <div style="flex: 1; background: ${d.diligenceMetrics.missingFiles.length > 0 ? 'rgba(239, 68, 68, 0.08)' : 'rgba(255,255,255,0.01)'}; border: 1px solid ${d.diligenceMetrics.missingFiles.length > 0 ? 'rgba(239, 68, 68, 0.2)' : 'var(--inv-divider)'}; padding: 10px 8px; border-radius: 4px; text-align: center; color: ${d.diligenceMetrics.missingFiles.length > 0 ? 'var(--inv-error)' : 'var(--inv-text-secondary)'}; opacity: ${d.diligenceMetrics.missingFiles.length > 0 ? '1' : '0.4'};">
+                                        <div style="font-size: 0.58rem; text-transform: uppercase; opacity: 0.8; margin-bottom: 4px;"> Missing </div>
+                                        <div style="font-size: 1rem; font-weight: bold;"> âš ï¸ ${d.diligenceMetrics.missingFiles.length} </div>
+                                    </div>
                                 </div>
-                                <div class="flex justify-between items-center" style="font-size: 0.65rem; color: #fff;">
-                                    <span class="video-time-display"> 0:00 / 0:00 </span>
-                                    <span class="video-pause-btn" style="cursor: pointer; font-weight: bold; background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px;"> Pause </span>
+                                <div style="margin-top: 12px; font-size: 0.7rem; color: var(--inv-text-secondary); text-align: center;">
+                                    Responsiveness: <strong style="color: var(--inv-success);">${d.responsiveness}</strong>
                                 </div>
                             </div>
                         </div>
-
-                        <div class="data-section" style="overflow: hidden; display: flex; flex-direction: column; height: 100%; padding: 0;">
-                            <!-- Top Meta Bar with Spacing-Protected Clusters -->
-                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; background: rgba(255,255,255,0.02); border-bottom: 1px solid var(--inv-divider); font-size: 0.72rem; width: 100%; box-sizing: border-box; flex-shrink: 0;">
-                                <!-- Left Cluster: Trust & Diligence States -->
-                                <div style="display: flex; gap: 10px; align-items: center; flex-shrink: 0;">
-                                    <span style="background: rgba(94, 143, 99, 0.1); color: var(--inv-success); border: 1px solid rgba(94,143,99,0.2); padding: 3px 10px; border-radius: 4px; font-size: 0.65rem; font-weight: 600; white-space: nowrap;"> ✓ ${trustBadgeText} </span>
-                                    <span style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); border: 0;"> </span>
-                                    ${vaultBadge}
-                                </div>
-                                <span style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); border: 0;"> </span>
-                                <!-- Right Cluster: Interactive Match score -->
-                                <div style="display: flex; gap: 6px; align-items: center; flex-shrink: 0;">
-                                    <button class="match-drilldown-trigger" data-id="${d.id}" data-score="${d.match}" style="background: rgba(201, 162, 39, 0.08); border: 1px solid var(--inv-premium); color: var(--inv-premium); padding: 3px 10px; border-radius: 4px; font-size: 0.72rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px; outline: none; transition: all 0.2s;">
-                                        <span> ★ ${d.match}% Match </span>
-                                        <span class="arrow-indicator" style="font-size: 0.55rem; color: var(--inv-text-secondary);">▼</span>
-                                    </button>
-                                </div>
-                            </div>
-
-                            <!-- Scrollable Card Details -->
-                            <div style="padding: 20px 24px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; box-sizing: border-box;">
-                                <div>
-                                    <h2 style="font-size: 1.35rem; font-weight: 600; color: var(--inv-text-primary); margin-bottom: 2px;">${d.name}</h2>
-                                    <div class="text-sm text-muted" style="display: flex; gap: 6px; align-items: center;">
-                                        <span> ${d.founder} </span>
-                                        <span style="color: var(--inv-divider);"> • </span>
-                                        <span> ${d.location} </span>
-                                    </div>
-                                </div>
-                                
-                                <!-- INTERACTIVE VISUAL MATCH DRILLDOWN -->
-                                <div id="drilldown-${d.id}" class="match-drilldown-container" style="display: none; background: rgba(201, 162, 39, 0.04); border: 1px solid var(--inv-premium); border-radius: 6px; padding: 12px; font-size: 0.75rem; animation: fadeIn 0.2s ease-out;">
-                                    <div style="font-weight: 600; text-transform: uppercase; color: var(--inv-premium); font-size: 0.65rem; margin-bottom: 10px; display:flex; justify-content:space-between; align-items:center;">
-                                        <span> Mandate Fit Metrics </span>
-                                        <span style="font-size: 0.6rem; color: var(--inv-text-secondary);"> 5/5 Overlap </span>
-                                    </div>
-                                    
-                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; margin-bottom: 4px;">
-                                        <div>
-                                            <div class="flex justify-between mb-1" style="font-size: 0.68rem; color: var(--inv-text-secondary);">
-                                                <span> Sector Thesis </span>
-                                                <strong style="color: var(--inv-success);"> 100% Fit </strong>
-                                            </div>
-                                            <div style="height: 4px; background: rgba(255,255,255,0.05); border-radius: 2px; overflow: hidden;">
-                                                <div style="width: 100%; height: 100%; background: var(--inv-success); border-radius: 2px;"></div>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <div class="flex justify-between mb-1" style="font-size: 0.68rem; color: var(--inv-text-secondary);">
-                                                <span> Stage Alignment </span>
-                                                <strong style="color: var(--inv-success);"> 100% Fit </strong>
-                                            </div>
-                                            <div style="height: 4px; background: rgba(255,255,255,0.05); border-radius: 2px; overflow: hidden;">
-                                                <div style="width: 100%; height: 100%; background: var(--inv-success); border-radius: 2px;"></div>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <div class="flex justify-between mb-1" style="font-size: 0.68rem; color: var(--inv-text-secondary);">
-                                                <span> Geography Hub </span>
-                                                <strong style="color: var(--inv-success);"> ${d.id === 'nexus' ? '90%' : '95%'} Fit </strong>
-                                            </div>
-                                            <div style="height: 4px; background: rgba(255,255,255,0.05); border-radius: 2px; overflow: hidden;">
-                                                <div style="width: ${d.id === 'nexus' ? '90%' : '95%'}; height: 100%; background: var(--inv-success); border-radius: 2px;"></div>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <div class="flex justify-between mb-1" style="font-size: 0.68rem; color: var(--inv-text-secondary);">
-                                                <span> Ticket Size Fit </span>
-                                                <strong style="color: var(--inv-success);"> 100% Fit </strong>
-                                            </div>
-                                            <div style="height: 4px; background: rgba(255,255,255,0.05); border-radius: 2px; overflow: hidden;">
-                                                <div style="width: 100%; height: 100%; background: var(--inv-success); border-radius: 2px;"></div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <p style="font-size: 0.925rem; font-weight: 500; color: var(--inv-text-primary); line-height: 1.4; margin-bottom: 4px;">${d.thesis}</p>
-                                    <p class="text-xs text-muted" style="font-style: italic;">"${d.evidence}"</p>
-                                </div>
-
-                                <!-- Visual Mandate Matching Chips (Anti-repetition pill row) -->
-                                <div class="mandate-match-pills" style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
-                                    <span style="background: rgba(201, 162, 39, 0.06); color: var(--inv-premium); border: 1px solid var(--brand-primary-soft); padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 500;"> ✓ ${d.sector} </span>
-                                    <span style="background: rgba(201, 162, 39, 0.06); color: var(--inv-premium); border: 1px solid var(--brand-primary-soft); padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 500;"> ✓ ${d.stage} </span>
-                                    <span style="background: rgba(201, 162, 39, 0.06); color: var(--inv-premium); border: 1px solid var(--brand-primary-soft); padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 500;"> ✓ ${d.location} </span>
-                                    <span style="background: rgba(201, 162, 39, 0.06); color: var(--inv-premium); border: 1px solid var(--brand-primary-soft); padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 500;"> ✓ Check Fit </span>
-                                </div>
-
-                                <!-- Consolidated Traction tag-strip (Eliminates repeated labels) -->
-                                <div class="card-traction-summary" style="display: flex; gap: 8px; flex-wrap: wrap; font-size: 0.72rem; align-items: center; color: var(--inv-text-primary);">
-                                    <span style="background: rgba(255,255,255,0.04); padding: 4px 8px; border-radius: 4px; border: 1px solid var(--inv-divider); display: flex; align-items: center; gap: 4px; white-space: nowrap;">
-                                        <span>💰</span> <strong> Ask: ${d.ask} </strong>
-                                    </span>
-                                    <span style="background: rgba(94, 143, 99, 0.08); padding: 4px 8px; border-radius: 4px; border: 1px solid rgba(94, 143, 99, 0.2); color: var(--inv-success); display: flex; align-items: center; gap: 4px; white-space: nowrap;">
-                                        <span>📈</span> <strong> Revenue: ${d.revenue} </strong> <span style="font-size: 0.65rem; opacity: 0.85;">(${d.growth})</span>
-                                    </span>
-                                    <span style="background: rgba(255,255,255,0.04); padding: 4px 8px; border-radius: 4px; border: 1px solid var(--inv-divider); display: flex; align-items: center; gap: 4px; white-space: nowrap;">
-                                        <span>⚙️</span> <span>${d.businessModel}</span>
-                                    </span>
-                                    <span style="background: rgba(255,255,255,0.04); padding: 4px 8px; border-radius: 4px; border: 1px solid var(--inv-divider); display: flex; align-items: center; gap: 4px; white-space: nowrap;">
-                                        <span>🤝</span> <span>${d.pilots}</span>
-                                    </span>
-                                    <span style="background: rgba(201, 162, 39, 0.08); padding: 4px 8px; border-radius: 4px; border: 1px solid var(--brand-primary-soft); color: var(--inv-premium); display: flex; align-items: center; gap: 4px; white-space: nowrap;">
-                                        <span>★</span> <strong> Conviction: ${d.convictionScore || '0'}/10 </strong>
-                                    </span>
-                                </div>
-
-                                <!-- Progress of Round commitments and Responsiveness grouped cleanly -->
-                                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.72rem; border-top: 1px dashed var(--inv-divider); padding-top: 8px;">
-                                    <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
-                                        <span class="text-muted"> Raised: </span>
-                                        <strong style="white-space: nowrap;"> ${d.roundTarget} </strong>
-                                        <div style="flex: 1; max-width: 120px; height: 5px; background: rgba(255,255,255,0.05); border-radius: 3px; overflow: hidden; border: 1px solid var(--inv-divider);">
-                                            <div style="width: ${d.id === 'omega' ? '70%' : d.id === 'acme' ? '53%' : d.id === 'synth' ? '55%' : d.id === 'nexus' ? '50%' : d.id === 'veridian' ? '50%' : d.id === 'nova' ? '64%' : d.id === 'cyberdyne' ? '55%' : d.id === 'starlight' ? '56%' : d.id === 'finflow' ? '58%' : '60%'}; height: 100%; background: var(--inv-accent); border-radius: 3px;"></div>
-                                        </div>
-                                    </div>
-                                    <div style="display: flex; align-items: center; gap: 6px; margin-left: 16px;">
-                                        <span class="text-muted"> Responsiveness: </span>
-                                        <strong style="color: var(--inv-success);"> ${d.responsiveness} </strong>
-                                    </div>
-                                </div>
-
-                                <!-- Diligence Checklist Visual columns widget -->
-                                <div style="background: rgba(0,0,0,0.15); border: 1px solid var(--inv-divider); border-radius: 6px; padding: 12px; font-size: 0.75rem;">
-                                    <div style="font-weight: 600; color: var(--inv-text-secondary); text-transform: uppercase; font-size: 0.65rem; margin-bottom: 8px; letter-spacing: 0.5px;"> Diligence Checklist </div>
-                                    <div style="display: flex; gap: 8px; width: 100%;">
-                                        <div style="flex: 1; background: rgba(94, 143, 99, 0.08); border: 1px solid rgba(94, 143, 99, 0.2); padding: 8px; border-radius: 4px; text-align: center; color: var(--inv-success);">
-                                            <div style="font-size: 0.58rem; text-transform: uppercase; opacity: 0.8; margin-bottom: 2px;"> Verified </div>
-                                            <div style="font-size: 0.85rem; font-weight: bold;"> ✔ ${d.diligenceMetrics.completedReviews} </div>
-                                        </div>
-                                        <div style="flex: 1; background: ${d.diligenceMetrics.staleDocs.length > 0 ? 'rgba(245, 158, 11, 0.08)' : 'rgba(255,255,255,0.01)'}; border: 1px solid ${d.diligenceMetrics.staleDocs.length > 0 ? 'rgba(245, 158, 11, 0.2)' : 'var(--inv-divider)'}; padding: 8px; border-radius: 4px; text-align: center; color: ${d.diligenceMetrics.staleDocs.length > 0 ? 'var(--inv-warning)' : 'var(--inv-text-secondary)'}; opacity: ${d.diligenceMetrics.staleDocs.length > 0 ? '1' : '0.4'};">
-                                            <div style="font-size: 0.58rem; text-transform: uppercase; opacity: 0.8; margin-bottom: 2px;"> Stale </div>
-                                            <div style="font-size: 0.85rem; font-weight: bold;"> ⏳ ${d.diligenceMetrics.staleDocs.length} </div>
-                                        </div>
-                                        <div style="flex: 1; background: ${d.diligenceMetrics.missingFiles.length > 0 ? 'rgba(239, 68, 68, 0.08)' : 'rgba(255,255,255,0.01)'}; border: 1px solid ${d.diligenceMetrics.missingFiles.length > 0 ? 'rgba(239, 68, 68, 0.2)' : 'var(--inv-divider)'}; padding: 8px; border-radius: 4px; text-align: center; color: ${d.diligenceMetrics.missingFiles.length > 0 ? 'var(--inv-error)' : 'var(--inv-text-secondary)'}; opacity: ${d.diligenceMetrics.missingFiles.length > 0 ? '1' : '0.4'};">
-                                            <div style="font-size: 0.58rem; text-transform: uppercase; opacity: 0.8; margin-bottom: 2px;"> Missing </div>
-                                            <div style="font-size: 0.85rem; font-weight: bold;"> ⚠️ ${d.diligenceMetrics.missingFiles.length} </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <span style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); border: 0;"> </span>
-
-                            <!-- Actions Row: FIXED -->
-                            <div style="padding: 16px 24px; border-top: 1px solid var(--inv-divider); background: rgba(23, 27, 36, 0.95); backdrop-filter: blur(8px); flex-shrink: 0; display: flex; flex-direction: column; gap: 6px;">
-                                <div style="font-size: 0.58rem; text-transform: uppercase; color: var(--inv-text-secondary); letter-spacing: 0.5px; font-weight: 600;"> Available Actions </div>
-                                <span style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); border: 0;"> </span>
-                                <div class="actions-group-container" style="display: flex; justify-content: space-between; align-items: center; gap: 12px; width: 100%;">
-                                    <div class="primary-deal-actions" style="display: flex; gap: 8px; flex: 1;">
-                                        <button class="btn btn-primary action-btn" data-action="request_intro" data-id="${d.id}" style="flex: 1; padding: 10px 14px; font-weight: 600; text-transform: uppercase; font-size: 0.72rem; letter-spacing: 0.5px; white-space: nowrap;"> Request Intro </button>
-                                        <span style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); border: 0;"> </span>
-                                        ${vdrButtonHtml}
-                                    </div>
-                                    <span style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); border: 0;"> </span>
-                                    <div class="secondary-deal-actions" style="display: flex; gap: 6px; align-items: center; flex-shrink: 0;">
-                                        <button class="btn btn-outline action-btn" data-action="watchlist" data-id="${d.id}" title="Shortlist" style="padding: 10px 12px; font-size: 0.9rem; border-color: var(--inv-divider); background: rgba(255,255,255,0.02); line-height: 1;"> ⭐ </button>
-                                        <span style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); border: 0;"> </span>
-                                        <button class="btn btn-outline action-btn" data-action="pass" data-id="${d.id}" title="Pass" style="padding: 10px 12px; font-size: 0.9rem; border-color: rgba(239, 68, 68, 0.2); color: var(--inv-error); background: rgba(239, 68, 68, 0.05); line-height: 1;"> ✕ </button>
-                                    </div>
-                                </div>
-                            </div>
+                        
+                        <!-- Secondary Actions -->
+                        <div style="display: flex; justify-content: flex-end; gap: 8px; padding-top: 12px; border-top: 1px dashed var(--inv-divider);">
+                            <button class="btn btn-primary action-btn" data-action="request_intro" data-id="${d.id}" style="padding: 6px 12px; font-weight: 600; text-transform: uppercase; font-size: 0.72rem; letter-spacing: 0.5px;"> Request Intro </button>
+                            <button class="btn btn-outline action-btn" data-action="watchlist" data-id="${d.id}" title="Shortlist" style="padding: 6px 10px; font-size: 0.8rem; border-color: var(--inv-divider);"> â­ Watchlist </button>
+                            <button class="btn btn-outline action-btn" data-action="pass" data-id="${d.id}" title="Pass" style="padding: 6px 10px; font-size: 0.8rem; border-color: rgba(239, 68, 68, 0.2); color: var(--inv-error);"> âœ• Pass </button>
                         </div>
                     </div>
                 </div>
@@ -2924,15 +2955,27 @@ export default class InvestorDashboardView extends AbstractView {
         return header + scroller;
     }
 
-    getWatchlistHtml() {
-        const deals = this.getDealsForTab('watchlist');
+        getWatchlistHtml() {
+        let allWatchlistDeals = this.getDealsForTab('watchlist');
+        
+        // Semantic Filtering
+        const filter = this.state.watchlistFilter || 'all';
+        let deals = allWatchlistDeals;
+        
+        if (filter === 'recent') {
+            deals = allWatchlistDeals.filter(d => d.updates && d.updates.length > 0);
+        } else if (filter === 'review') {
+            deals = allWatchlistDeals.filter(d => !d.reason || d.reason === 'No interaction yet');
+        } else if (filter === 'priority') {
+            deals = allWatchlistDeals.filter(d => d.match >= 90);
+        }
         
         // Chronological activity log from watchlist deals
         const logs = [
-            { startup: "Nexus Health", event: "Founder uploaded HIPAA compliance cert", time: "2h ago", icon: "📁" },
-            { startup: "Aurora Climate", event: "Intro call scheduled by Mike Operations", time: "Today, 10:00 AM", icon: "📅" },
-            { startup: "Starlight Solar", event: "Bavaria Pilot Report updated in VDR", time: "Yesterday", icon: "📄" },
-            { startup: "Finflow", event: "MAS Regulatory audit report approved", time: "2 days ago", icon: "🛡️" }
+            { startup: "Nexus Health", event: "Founder uploaded HIPAA compliance cert", time: "2h ago", icon: "ðŸ“" },
+            { startup: "Aurora Climate", event: "Intro call scheduled by Mike Operations", time: "Today, 10:00 AM", icon: "ðŸ“…" },
+            { startup: "Starlight Solar", event: "Bavaria Pilot Report updated in VDR", time: "Yesterday", icon: "ðŸ“„" },
+            { startup: "Finflow", event: "MAS Regulatory audit report approved", time: "2 days ago", icon: "ðŸ›¡ï¸" }
         ];
 
         let html = `
@@ -2947,8 +2990,18 @@ export default class InvestorDashboardView extends AbstractView {
             <div style="display: grid; grid-template-columns: 1.8fr 1fr; gap: 24px; padding: 0 32px 32px 32px;">
                 <!-- Watchlist Table -->
                 <div style="background: var(--inv-surface); border: 1px solid var(--inv-divider); border-radius: 8px; padding: 20px;">
-                    <h3 class="font-semibold mb-4" style="font-size: 0.95rem; color: var(--inv-text-primary);">⭐ Monitored Opportunities (${deals.length})</h3>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                        <h3 class="font-semibold" style="font-size: 0.95rem; color: var(--inv-text-primary);">â­ Monitored Opportunities (${deals.length})</h3>
+                    </div>
                     
+                    <!-- Semantic Filters -->
+                    <div style="display: flex; gap: 8px; margin-bottom: 20px;">
+                        <button class="btn btn-sm action-btn wl-filter-btn" data-action="wl-filter" data-filter="recent" style="border-radius: 16px; padding: 4px 12px; font-size: 0.7rem; background: ${filter === 'recent' ? 'var(--inv-accent)' : 'var(--inv-surface-2)'}; color: ${filter === 'recent' ? '#fff' : 'var(--inv-text-primary)'}; border: none;">Recently Updated</button>
+                        <button class="btn btn-sm action-btn wl-filter-btn" data-action="wl-filter" data-filter="review" style="border-radius: 16px; padding: 4px 12px; font-size: 0.7rem; background: ${filter === 'review' ? 'var(--inv-accent)' : 'var(--inv-surface-2)'}; color: ${filter === 'review' ? '#fff' : 'var(--inv-text-primary)'}; border: none;">Needs Review</button>
+                        <button class="btn btn-sm action-btn wl-filter-btn" data-action="wl-filter" data-filter="priority" style="border-radius: 16px; padding: 4px 12px; font-size: 0.7rem; background: ${filter === 'priority' ? 'var(--inv-accent)' : 'var(--inv-surface-2)'}; color: ${filter === 'priority' ? '#fff' : 'var(--inv-text-primary)'}; border: none;">High Priority</button>
+                        <button class="btn btn-sm action-btn wl-filter-btn" data-action="wl-filter" data-filter="all" style="border-radius: 16px; padding: 4px 12px; font-size: 0.7rem; background: transparent; border: 1px solid ${filter === 'all' ? 'var(--inv-premium)' : 'var(--inv-divider)'}; color: ${filter === 'all' ? 'var(--inv-premium)' : 'var(--inv-text-secondary)'};">Clear Filters</button>
+                    </div>
+
                     <div style="overflow-x: auto;">
                         <table class="wl-table" style="width: 100%; border-collapse: collapse;">
                             <thead>
@@ -2963,14 +3016,14 @@ export default class InvestorDashboardView extends AbstractView {
                                 ${deals.length === 0 ? `
                                     <tr>
                                         <td colspan="4" style="padding: 24px; text-align: center; color: var(--inv-text-secondary);">
-                                            No opportunities on watchlist. Go to Discover to shortlist startups.
+                                            No opportunities found for the selected filter.
                                         </td>
                                     </tr>
                                 ` : deals.map(d => `
                                     <tr style="border-bottom: 1px solid var(--inv-divider); cursor: pointer;" class="wl-row ${this.state.selectedDealId === d.id ? 'selected' : ''}" data-id="${d.id}">
                                         <td style="padding: 12px 10px;">
                                             <div style="font-weight: 600; color: var(--inv-text-primary);">${d.name}</div>
-                                            <div class="text-xs text-muted">${d.stage} • ${d.sector}</div>
+                                            <div class="text-xs text-muted">${d.stage} â€¢ ${d.sector}</div>
                                         </td>
                                         <td style="padding: 12px 10px; color: var(--inv-text-secondary); font-size: 0.75rem;">
                                             ${d.thesis || 'Direct Sector Fit'}
@@ -2992,8 +3045,8 @@ export default class InvestorDashboardView extends AbstractView {
                         </table>
                     </div>
                 </div>
-
-                <!-- Watchlist Chronological Logs -->
+                
+                <!-- Watchlist Chronological Logs --><!-- Watchlist Chronological Logs -->
                 <div style="background: var(--inv-surface); border: 1px solid var(--inv-divider); border-radius: 8px; padding: 20px;">
                     <h3 class="font-semibold mb-4" style="font-size: 0.95rem; color: var(--inv-text-primary);">📅 Watchlist Activity Feed</h3>
                     <div style="display: flex; flex-direction: column; gap: 16px;">
@@ -3016,15 +3069,21 @@ export default class InvestorDashboardView extends AbstractView {
         return html;
     }
 
-    getKanbanHtml() {
+        getKanbanHtml() {
         const deals = this.getDealsForTab('deals');
+        // Mock a live deal for demonstration of Kanban improvements
+        if (deals.length > 0 && !deals.find(d => d.status === 'live_deals')) {
+            const dToMove = deals.find(d => d.status === 'diligence');
+            if (dToMove) { dToMove.status = 'live_deals'; dToMove.closingDate = 'Oct 15, 2026'; }
+        }
+
         const cols = [
             { id: 'interest_sent', title: 'Interest Sent', benchmark: '85% conversion to intro' }, 
             { id: 'intro_review', title: 'Intro Under Review', benchmark: '4.2 days avg duration' }, 
-            { id: 'diligence', title: 'Diligence / Data Room', benchmark: '15.2 days avg duration' }
+            { id: 'diligence', title: 'Due Diligence', benchmark: '15.2 days avg duration' },
+            { id: 'live_deals', title: 'Live Deals', benchmark: 'Closing imminent' }
         ];
 
-        // If dealsFilterStage is set to 'diligence', we should filter the cards shown or highlight the diligence column!
         const activeFilterStage = this.state.dealsFilterStage;
 
         let html = `
@@ -3035,116 +3094,93 @@ export default class InvestorDashboardView extends AbstractView {
                         <p class="text-sm text-muted mt-1">Manage negotiation stages, VDR checklists, and founder response SLAs.</p>
                     </div>
                     <div class="flex items-center gap-2" style="background: rgba(255,255,255,0.02); border: 1px solid var(--inv-divider); padding: 6px 12px; border-radius: 6px; font-size: 0.72rem;">
-                        <span style="color: var(--inv-accent); font-weight: bold;">⚡ Funnel Velocity:</span>
+                        <span style="color: var(--inv-accent); font-weight: bold;">âš¡ Funnel Velocity:</span>
                         <span style="color: var(--inv-text-secondary);">12.7 days sourced-to-diligence (benchmark: 16 days)</span>
                     </div>
                 </div>
             </div>
             
-            <!-- Conversion Ratios strip -->
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; padding: 12px 24px; background: rgba(0,0,0,0.15); border-bottom: 1px solid var(--inv-divider); font-size: 0.75rem;">
-                <div class="flex items-center gap-2"><span style="color: var(--inv-accent);">●</span> <span>Sourced → Intro Review: <strong>22% MoM increase</strong></span></div>
-                <div class="flex items-center gap-2"><span style="color: var(--inv-success);">●</span> <span>Intro → Diligence Unlock: <strong>8.5 days median</strong></span></div>
-                <div class="flex items-center gap-2"><span style="color: var(--inv-warning);">●</span> <span>Diligence → Term Sheet: <strong>12 active processes</strong></span></div>
-            </div>
-
-            <div class="kanban-board">
+            <div class="kanban-board" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; overflow-x: auto; padding-bottom: 24px;">
         `;
 
         cols.forEach(col => {
-            // Apply stage filtering if set by side navigation
-            if (activeFilterStage && col.id !== activeFilterStage) {
-                // If sidebar specifically requested a stage and this is not it, we can fade it or skip it. Let's keep it visible but faded, or only filter if requested.
-            }
-            
             const colDeals = deals.filter(d => d.status === col.id);
             const isHighlightedColumn = activeFilterStage === col.id;
             const columnStyle = isHighlightedColumn ? 'border-color: var(--inv-accent); background: rgba(47, 107, 94, 0.05);' : '';
 
             html += `
-                <div class="kanban-col" style="${columnStyle}">
+                <div class="kanban-col" style="background: rgba(255,255,255,0.01); border: 1px solid var(--inv-divider); border-radius: 8px; padding: 12px; ${columnStyle}">
                     <div class="kanban-header" style="display:flex; flex-direction:column; gap:4px; margin-bottom:16px;">
                         <div style="display:flex; justify-content:space-between; align-items:center; font-weight:600; font-size:0.9rem;">
                             <span style="color: var(--inv-text-primary);">${col.title}</span>
-                            <span style="background: var(--inv-surface-2); padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; color: var(--inv-text-primary);">${colDeals.length}</span>
+                            <span style="background: rgba(255,255,255,0.05); padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; color: var(--inv-text-primary); border: 1px solid var(--inv-divider);">${colDeals.length}</span>
                         </div>
                         <span style="font-size: 0.65rem; color: var(--inv-text-secondary); font-style: italic;">${col.benchmark}</span>
                     </div>
             `;
 
             colDeals.forEach(d => {
-                let alert = '';
+                let contextActionHtml = '';
                 if (d.status === 'interest_sent') {
-                    alert = `<div class="sla-tag mt-2" style="display:inline-block; font-size: 0.7rem; padding: 2px 6px; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245,158,11,0.3); color: var(--inv-warning); border-radius: 4px; width: 100%;">${this.getIcon('INFO')} responsiveness: ${d.responsiveness}</div>`;
+                    contextActionHtml = `
+                        <div style="margin-top: 10px; display: flex; gap: 8px;">
+                            <button class="btn btn-outline btn-sm action-btn" data-action="ping-founder" data-id="${d.id}" style="flex: 1; font-size: 0.7rem; padding: 4px 8px; border-color: var(--inv-divider);">Ping Founder</button>
+                            <button class="btn btn-outline btn-sm action-btn" data-action="pass" data-id="${d.id}" style="border-color: rgba(239, 68, 68, 0.3); color: var(--inv-error); background: rgba(239, 68, 68, 0.05); font-size: 0.7rem; padding: 4px 8px;">Pass</button>
+                        </div>
+                        <div style="font-size: 0.65rem; color: var(--inv-warning); margin-top: 8px; background: rgba(245, 158, 11, 0.1); padding: 4px 6px; border-radius: 4px; border: 1px solid rgba(245, 158, 11, 0.2);">â³ Responsiveness: ${d.responsiveness}</div>
+                    `;
                 } else if (d.status === 'intro_review') {
-                    alert = `<div class="sla-tag mt-2" style="display:inline-block; font-size: 0.7rem; padding: 2px 6px; background: rgba(94, 143, 99, 0.1); border: 1px solid rgba(94, 143, 99, 0.3); color: var(--inv-success); border-radius: 4px; width: 100%;">${this.getIcon('MEETINGS')} Next: Intro call scheduled</div>`;
+                    contextActionHtml = `
+                        <div style="margin-top: 10px; display: flex; gap: 8px;">
+                            <button class="btn btn-primary btn-sm action-btn" data-action="schedule-intro" data-id="${d.id}" style="flex: 1; font-size: 0.7rem; padding: 4px 8px;">Schedule Meeting</button>
+                        </div>
+                        <div style="font-size: 0.65rem; color: var(--inv-success); margin-top: 8px; background: rgba(94, 143, 99, 0.1); padding: 4px 6px; border-radius: 4px; border: 1px solid rgba(94, 143, 99, 0.2);">ðŸ“… Next: Intro call ready</div>
+                    `;
                 } else if (d.status === 'diligence') {
-                    const readyCount = d.vdrFiles.filter(f => f.state === 'unlocked' || d.vaultState === 'unlocked').length;
-                    const totalCount = d.vdrFiles.length;
-                    alert = `<div class="sla-tag mt-2" style="display:inline-block; font-size: 0.7rem; padding: 2px 6px; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); color: #3b82f6; border-radius: 4px; width: 100%;">${this.getIcon('VDR')} VDR Readiness: ${readyCount}/${totalCount} files</div>`;
+                    let missingAlert = '';
+                    if (d.diligenceMetrics && d.diligenceMetrics.missingFiles.length > 0) {
+                        missingAlert = `<div style="font-size: 0.65rem; color: var(--inv-error); background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); padding: 4px 6px; border-radius: 4px; margin-top: 8px;">âš ï¸ Missing ${d.diligenceMetrics.missingFiles.length} Files</div>`;
+                    }
+                    contextActionHtml = `
+                        <div style="margin-top: 10px; display: flex; gap: 8px;">
+                            <button class="btn btn-outline btn-sm action-btn" data-action="open_vdr" data-id="${d.id}" style="flex: 1; border-color: var(--inv-accent); color: var(--inv-accent); font-size: 0.7rem; padding: 4px 8px;">Review Docs</button>
+                        </div>
+                        ${missingAlert}
+                    `;
+                } else if (d.status === 'live_deals') {
+                    contextActionHtml = `
+                        <div style="margin-top: 10px; display: flex; gap: 8px;">
+                            <button class="btn btn-primary btn-sm action-btn" data-action="issue-term-sheet" data-id="${d.id}" style="flex: 1; font-size: 0.7rem; padding: 4px 8px; background: var(--inv-success);">Issue Term Sheet</button>
+                        </div>
+                        <div style="font-size: 0.65rem; color: var(--inv-success); margin-top: 8px; font-weight: bold; background: rgba(94, 143, 99, 0.1); padding: 4px 6px; border-radius: 4px; border: 1px solid rgba(94, 143, 99, 0.2);">ðŸŽ¯ Closing Date: ${d.closingDate || 'TBD'}</div>
+                    `;
                 }
-
-                let blockersHtml = '';
-                if (d.diligenceBlockers && d.diligenceBlockers.length > 0) {
-                    blockersHtml = `<div style="font-size: 0.7rem; color: var(--inv-error); margin-top: 6px; display: flex; align-items: center; gap: 4px;">${this.getIcon('WARNING')} <span>Blocker: ${d.diligenceBlockers[0]}</span></div>`;
-                }
-
-                let nextActionHtml = `<div style="font-size: 0.7rem; color: var(--inv-text-secondary); margin-top: 6px; border-top: 1px dashed var(--inv-divider); padding-top: 6px; font-style: italic;">Next: ${d.nextAction}</div>`;
-
-                let dilTag = `
-                    <div style="display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px;">
-                        <span style="font-size: 0.6rem; background: rgba(94, 143, 99, 0.1); color: var(--inv-success); padding: 1px 4px; border-radius: 2px;">${this.getIcon('INFO')} ${d.diligenceMetrics.completedReviews} verified</span>
-                        ${d.diligenceMetrics.staleDocs.length > 0 ? `<span style="font-size: 0.6rem; background: rgba(245, 158, 11, 0.1); color: var(--inv-warning); padding: 1px 4px; border-radius: 2px;">${this.getIcon('INFO')} ${d.diligenceMetrics.staleDocs.length} stale</span>` : ''}
-                        ${d.diligenceMetrics.missingFiles.length > 0 ? `<span style="font-size: 0.6rem; background: rgba(239, 68, 68, 0.1); color: var(--inv-error); padding: 1px 4px; border-radius: 2px;">${this.getIcon('INFO')} ${d.diligenceMetrics.missingFiles.length} missing</span>` : ''}
-                    </div>
-                `;
-                // Risk badges based on existing data
-                let riskBadges = '';
-                if (d.diligenceMetrics.missingFiles.length > 0) { riskBadges += this.renderBadge('Missing docs','danger'); }
-                if (d.diligenceMetrics.staleDocs.length > 0) { riskBadges += this.renderBadge('Stale docs','warning'); }
-                if (d.accessState === ACCESS_STATE.REQUEST_VDR) { riskBadges += this.renderBadge('VDR gated','info'); }
-                if (d.founderVerified) { riskBadges += this.renderBadge('Founder verified','success'); }
-
 
                 html += `
-                    <div class="kanban-card ${this.state.selectedDealId === d.id ? 'selected' : ''}" data-id="${d.id}">
-                        <div class="flex justify-between mb-1" style="align-items: center;">
-                            <span class="font-semibold text-sm" style="color: var(--inv-text-primary);">${d.name}</span>
-                            <button class="match-drilldown-trigger" data-id="${d.id}" data-score="${d.match}" style="background: transparent; border: none; color: var(--inv-premium); font-size: 0.75rem; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 2px; padding: 0;">
-                                <span>★ ${d.match}%</span> <span class="arrow-indicator" style="font-size: 0.55rem; color: var(--inv-text-secondary);">▼</span>
-                            </button>
+                    <div class="kanban-card ${this.state.selectedDealId === d.id ? 'selected' : ''}" data-id="${d.id}" style="padding: 14px; background: var(--inv-surface); border: 1px solid var(--inv-divider); border-radius: 8px; margin-bottom: 12px; cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+                        <div class="flex justify-between mb-3" style="align-items: flex-start;">
+                            <div>
+                                <div class="font-semibold text-sm" style="color: var(--inv-text-primary); margin-bottom: 2px;">${d.name}</div>
+                                <div style="font-size: 0.65rem; color: var(--inv-text-secondary);">${d.sector} â€¢ ${d.stage}</div>
+                            </div>
+                            <div style="background: rgba(201, 162, 39, 0.1); border: 1px solid var(--inv-premium); color: var(--inv-premium); padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: bold;">â˜… ${d.match}%</div>
                         </div>
-
-                        <!-- INTERACTIVE DRILLDOWN -->
-                        <div id="drilldown-${d.id}" class="match-drilldown-container" style="display: none; background: rgba(201, 162, 39, 0.04); border: 1px solid var(--inv-premium); border-radius: 6px; padding: 10px; margin-bottom: 8px; font-size: 0.7rem; line-height: 1.3;">
-                            <div class="flex justify-between"><strong>Sector Fit:</strong> <span class="text-muted">${d.sector} (100%)</span></div>
-                            <div class="flex justify-between"><strong>Stage Fit:</strong> <span class="text-muted">${d.stage} (100%)</span></div>
-                            <div class="flex justify-between"><strong>Check Size:</strong> <span class="text-muted">Verified</span></div>
+                        <div style="display: flex; gap: 12px; font-size: 0.7rem; color: var(--inv-text-primary); margin-bottom: 8px; border-top: 1px dashed var(--inv-divider); padding-top: 8px;">
+                            <div><span class="text-muted">Ask:</span> <strong>${d.ask}</strong></div>
+                            <div><span class="text-muted">Rev:</span> <strong style="color: var(--inv-success);">${d.revenue}</strong></div>
                         </div>
-
-                        <div class="card-summary" style="font-size: 0.75rem; color: var(--inv-text-secondary); display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                            <span>${this.getIcon('INFO')} ${d.sector} • ${d.stage}</span>
-                            <span style="color: var(--inv-success); font-weight: 500;">${d.revenue}</span>
+                        
+                        <!-- Contextual Action Layer -->
+                        <div style="border-top: 1px solid var(--inv-divider); padding-top: 4px; margin-top: 8px;">
+                            ${contextActionHtml}
                         </div>
-                        <div class="card-metrics" style="font-size: 0.75rem; color: var(--inv-text-secondary); display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                            <span>Ask: ${d.ask}</span>
-                            <span style="color: var(--inv-text-primary); font-weight: 500;">${d.growth}</span>
-                        </div>
-                        <div class="card-footer" style="font-size: 0.7rem; color: var(--inv-text-secondary); margin-bottom: 4px; display: flex; justify-content: space-between;">
-                            <span>Model: <strong>${d.businessModel}</strong></span>
-                            <span>Pilots: <strong>${d.pilots}</strong></span>
-                        </div>
-                        ${alert}
-                        ${dilTag}
-                        ${riskBadges}
-                        ${blockersHtml}
-                        ${nextActionHtml}
                     </div>
                 `;
             });
             html += `</div>`;
         });
         return html + `</div>`;
+
 
     }
 
@@ -4018,56 +4054,94 @@ export default class InvestorDashboardView extends AbstractView {
         this.attachListListeners();
     }
 
-    attachListListeners() {
+        attachListListeners() {
+        // Handle whole-card clicks for drilldown/selection
         document.querySelectorAll('.wl-row, .kanban-card, .startup-card-inner').forEach(el => {
             el.addEventListener('click', (e) => {
-                if (e.target.closest('.action-btn')) return;
-                const id = el.closest('[data-id]').dataset.id;
-                const action = el.dataset.action;
-                const deal = this.state.deals.find(d => d.id === id);
-                        if (action === 'watchlist') {
-            deal.status = 'watchlist';
-            deal.crmActivity.unshift({ event: "Added to Shortlist", user: "Jane Sterling (Investor)", date: "Just now" });
-            this.showToast(`${deal.name} added to shortlist/watchlist.`);
-            this.logTelemetry('DEAL_SHORTLISTED', { dealId: id, name: deal.name });
-        } else if (action === 'request_intro') {
-            deal.status = 'interest_sent';
-            deal.updates.unshift('Interest sent just now');
-            deal.crmActivity.unshift({ event: "Interest Expressed / Intro Requested", user: "Jane Sterling (Investor)", date: "Just now" });
-            this.showToast(`Introduction request sent for ${deal.name}.`);
-            this.logTelemetry('DEAL_STAGE_PROMOTED', { dealId: id, name: deal.name, targetStage: 'interest_sent' });
-        } else if (action === 'pass') {
-            deal.status = 'passed';
-            deal.crmActivity.unshift({ event: "Passed on deal", user: "Jane Sterling (Investor)", date: "Just now" });
-            this.showToast(`${deal.name} archived/passed.`);
-            this.logTelemetry('DEAL_ARCHIVED', { dealId: id, name: deal.name });
-        } else if (action === 'request_vdr') {
-            deal.vaultState = 'requested';
-            deal.updates.unshift('VDR access requested');
-            deal.crmActivity.unshift({ event: "Requested VDR access", user: "Jane Sterling (Investor)", date: "Just now" });
-            this.showToast(`Diligence vault access requested from ${deal.founder}.`, 'warning');
-            this.logTelemetry('VDR_ACCESS_REQUESTED', { dealId: id, name: deal.name, founder: deal.founder });
-        } else if (action === 'nudge-vdr') {
-            deal.crmActivity.unshift({ event: "Nudge sent for VDR access", user: "Jane Sterling (Investor)", date: "Just now" });
-            this.showToast(`System nudge sent to ${deal.founder} for document verification.`, 'warning');
-            this.logTelemetry('VDR_NUDGE_SENT', { dealId: id, name: deal.name });
-        } else if (action === 'open_vdr') {
-            this.showToast(`Opening VDR Document Room for ${deal.name}.`);
-            deal.status = 'diligence';
-            this.state.selectedDealId = deal.id;
-            this.state.activeTab = 'deals';
-            this.logTelemetry('VDR_ROOM_OPENED', { dealId: id, name: deal.name });
-        }
- 
-        if (this.state.activeTab === 'discover') {
-            const remaining = this.getDealsForTab('discover');
-            this.state.selectedDealId = remaining.length > 0 ? remaining[0].id : null;
-        }
-        this.saveStateToLocalStorage();
-        this.render();
+                if (e.target.closest('.action-btn')) return; // let the action btn handler take it
+                if (e.target.closest('.match-drilldown-trigger')) return; // drilldown trigger
+                
+                const id = el.closest('[data-id]') ? el.closest('[data-id]').dataset.id : null;
+                if (id) {
+                    this.state.selectedDealId = id;
+                    this.saveStateToLocalStorage();
+                    this.render();
+                }
+            });
         });
-    });
-}
+
+        // Handle specific action buttons
+        document.querySelectorAll('.action-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation(); // prevent bubbling to card
+                
+                const action = btn.dataset.action;
+                const filter = btn.dataset.filter;
+                
+                if (action === 'wl-filter') {
+                    this.state.watchlistFilter = filter;
+                    this.saveStateToLocalStorage();
+                    this.render();
+                    return;
+                }
+
+                const id = btn.dataset.id;
+                const deal = this.state.deals.find(d => d.id === id);
+                if (!deal) return;
+
+                if (action === 'watchlist') {
+                    deal.status = 'watchlist';
+                    deal.crmActivity.unshift({ event: "Added to Shortlist", user: "Jane Sterling (Investor)", date: "Just now" });
+                    const rationale = prompt(`Why are you adding ${deal.name} to your watchlist? (Strongly encouraged for future reference)`);
+                    deal.reason = rationale ? rationale : 'No interaction yet';
+                    deal.lastTouch = 'No interaction yet';
+                    this.showToast(`${deal.name} added to shortlist/watchlist.`);
+                    this.logTelemetry('DEAL_SHORTLISTED', { dealId: id, name: deal.name });
+                } else if (action === 'request_intro') {
+                    deal.status = 'interest_sent';
+                    deal.updates.unshift('Interest sent just now');
+                    deal.crmActivity.unshift({ event: "Interest Expressed / Intro Requested", user: "Jane Sterling (Investor)", date: "Just now" });
+                    this.showToast(`Introduction request sent for ${deal.name}.`);
+                    this.logTelemetry('DEAL_STAGE_PROMOTED', { dealId: id, name: deal.name, targetStage: 'interest_sent' });
+                } else if (action === 'pass') {
+                    deal.status = 'passed';
+                    deal.crmActivity.unshift({ event: "Passed on deal", user: "Jane Sterling (Investor)", date: "Just now" });
+                    this.showToast(`${deal.name} archived/passed.`);
+                    this.logTelemetry('DEAL_ARCHIVED', { dealId: id, name: deal.name });
+                } else if (action === 'request_vdr') {
+                    deal.vaultState = 'requested';
+                    deal.updates.unshift('VDR access requested');
+                    deal.crmActivity.unshift({ event: "Requested VDR access", user: "Jane Sterling (Investor)", date: "Just now" });
+                    this.showToast(`Diligence vault access requested from ${deal.founder}.`, 'warning');
+                    this.logTelemetry('VDR_ACCESS_REQUESTED', { dealId: id, name: deal.name, founder: deal.founder });
+                } else if (action === 'nudge-vdr') {
+                    deal.crmActivity.unshift({ event: "Nudge sent for VDR access", user: "Jane Sterling (Investor)", date: "Just now" });
+                    this.showToast(`System nudge sent to ${deal.founder} for document verification.`, 'warning');
+                    this.logTelemetry('VDR_NUDGE_SENT', { dealId: id, name: deal.name });
+                } else if (action === 'open_vdr') {
+                    this.showToast(`Opening VDR Document Room for ${deal.name}.`);
+                    deal.status = 'diligence';
+                    this.state.selectedDealId = deal.id;
+                    this.state.activeTab = 'vdr';
+                    this.logTelemetry('VDR_ROOM_OPENED', { dealId: id, name: deal.name });
+                } else if (action === 'ping-founder') {
+                    this.showToast(`Ping sent to ${deal.name} founder.`);
+                } else if (action === 'schedule-intro') {
+                    this.showToast(`Scheduling intro with ${deal.name}.`);
+                } else if (action === 'issue-term-sheet') {
+                    this.showToast(`Term sheet drafted for ${deal.name}.`);
+                }
+
+                if (this.state.activeTab === 'discover' && (action === 'pass' || action === 'request_intro' || action === 'watchlist')) {
+                    const remaining = this.getDealsForTab('discover');
+                    this.state.selectedDealId = remaining.length > 0 ? remaining[0].id : null;
+                }
+
+                this.saveStateToLocalStorage();
+                this.render();
+            });
+        });
+    }
  
     showToast(message, type = 'success') {
         this.logTelemetry('TOAST_NOTIFICATION', { message, type });

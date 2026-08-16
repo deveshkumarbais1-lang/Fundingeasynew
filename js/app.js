@@ -3,10 +3,20 @@ import LoginView from './views/LoginView.js';
 import SignupView from './views/SignupView.js';
 import OnboardingView from './views/OnboardingView.js';
 import EntrepreneurDashboardView from './views/EntrepreneurDashboardView.js';
-import InvestorDashboardView from './views/InvestorDashboardView.js';
+import InvestorDashboardView from './views/InvestorDashboardView.js?v=3';
 import AdminDashboardView from './views/AdminDashboardView.js';
 import PrivacyView from './views/PrivacyView.js';
 import TermsView from './views/TermsView.js';
+import NotFoundView from './views/NotFoundView.js';
+import FounderApplyView from './views/FounderApplyView.js';
+import InvestorApplyView from './views/InvestorApplyView.js';
+import HowItWorksView from './views/HowItWorksView.js';
+import WhyUsView from './views/WhyUsView.js';
+import SuccessView from './views/SuccessView.js';
+import AboutView from './views/AboutView.js';
+import FAQView from './views/FAQView.js';
+import SecurityView from './views/SecurityView.js';
+import ContactView from './views/ContactView.js';
 
 // Simple SPA Router
 const routes = {
@@ -19,6 +29,13 @@ const routes = {
     '/dashboard/admin': AdminDashboardView,
     '/privacy': PrivacyView,
     '/terms': TermsView,
+    '/how-it-works': HowItWorksView,
+    '/why-us': WhyUsView,
+    '/success': SuccessView,
+    '/about': AboutView,
+    '/faq': FAQView,
+    '/security': SecurityView,
+    '/contact': ContactView
 };
 
 class App {
@@ -205,10 +222,9 @@ class App {
         let path = location.pathname;
         let ViewClass = routes[path];
         
-        // Default to home if not found
+        // Default to 404 if not found
         if (!ViewClass) {
-            ViewClass = HomeView;
-            history.replaceState(null, null, '/');
+            ViewClass = NotFoundView;
         }
 
         // Avoid re-rendering if we are on the same route and hash is changing

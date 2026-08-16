@@ -10,7 +10,7 @@ export default class extends AbstractView {
     async getHtml() {
         return `
             <div class="auth-page">
-                ${Navbar()}
+                ${Navbar({ simplified: true })}
                 <main class="container" style="padding: 40px 0 80px 0; max-width: 700px;">
                     <div style="background: var(--bg-surface); padding: 48px; border: 1px solid var(--border-subtle); border-radius: var(--radius-md);">
                     <!-- Step Progress Wayfinder -->
@@ -28,12 +28,12 @@ export default class extends AbstractView {
                     
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 48px;">
                         <div class="role-card active" data-role="entrepreneur" style="padding: 24px; border: 1px solid var(--accent-primary); border-radius: var(--radius-sm); cursor: pointer; background: rgba(47, 107, 94, 0.05);">
-                            <h3 style="font-size: 1.125rem; font-weight: 600; color: var(--text-primary); margin-bottom: 8px;">Founder</h3>
-                            <p style="font-size: 0.875rem; color: var(--text-secondary); line-height: 1.5;">I am raising capital for my startup.</p>
+                            <h3 style="font-size: 1.125rem; font-weight: 600; color: var(--text-primary); margin-bottom: 8px;">Apply as Founder</h3>
+                            <p style="font-size: 0.875rem; color: var(--text-secondary); line-height: 1.5;">For venture-backable companies raising private capital.</p>
                         </div>
                         <div class="role-card" data-role="investor" style="padding: 24px; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); cursor: pointer; background: var(--bg-base);">
-                            <h3 style="font-size: 1.125rem; font-weight: 600; color: var(--text-primary); margin-bottom: 8px;">Investor</h3>
-                            <p style="font-size: 0.875rem; color: var(--text-secondary); line-height: 1.5;">I want to discover curated startups.</p>
+                            <h3 style="font-size: 1.125rem; font-weight: 600; color: var(--text-primary); margin-bottom: 8px;">Apply as Investor</h3>
+                            <p style="font-size: 0.875rem; color: var(--text-secondary); line-height: 1.5;">For accredited and institutional investors.</p>
                         </div>
                     </div>
 

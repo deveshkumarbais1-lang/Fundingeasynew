@@ -26,6 +26,8 @@ export default class extends AbstractView {
             activeTab: 'overview',
             kycVerified: true,
             published: false,
+            profileState: 'Draft', // Enum: 'Draft', 'Action Required', 'Under Review', 'Private Matching', 'Live', 'Paused'
+
             
             company: {
                 name: 'Acme Corp',
@@ -223,49 +225,128 @@ export default class extends AbstractView {
         return blockers;
     }
 
-    getDependencyBannerHtml() {
-        if (this.state.published) return '';
+    getProfileState() {
         const blockers = this.getOpenBlockers();
-        if (blockers.length === 0) {
-            return `
-                <div style="background: linear-gradient(135deg, rgba(63, 138, 87, 0.15) 0%, rgba(63, 138, 87, 0.05) 100%); border: 1px solid var(--success); padding: 20px 28px; border-radius: 12px; margin-top: 12px; margin-bottom: 40px; display: flex; justify-content: space-between; align-items: center; gap: 24px; box-shadow: 0 8px 32px rgba(63, 138, 87, 0.12); flex-wrap: wrap;">
-                    <div style="display: flex; align-items: center; gap: 16px; flex: 1; min-width: 260px;">
-                        <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--success-soft); display: flex; align-items: center; justify-content: center; color: var(--success); flex-shrink: 0;">
-                            ${ICONS.check}
+        if (!this.state.kycVerified && blockers.length > 1) {
+            return { id: 'Draft', type: 'warning', text: 'Draft (Unpublished)', action: 'Action Required', description: 'Complete your profile to go live.' };
+        }
+        if (blockers.length > 0) {
+            return { id: 'Action Required', type: 'danger', text: `Not discoverable — ${blockers.length} required item${blockers.length > 1 ? 's' : ''}`, action: 'Action Required', description: blockers[0].toLowerCase().includes("pitch") ? "Your profile cannot go live until a founder pitch video is uploaded." : `${blockers[0]} is required. Your profile cannot go live until all criteria are met.` };
+        }
+        if (this.state.kycVerified && !this.state.published) {
+            return { id: 'Under Review', type: 'success', text: 'Startup Profile Ready', action: 'Ready', description: 'All checklist parameters are met. Go live to open matchmaking loops with live investors.' };
+        }
+        if (this.state.published && this.state.settingsPlan === 'Private') {
+            return { id: 'Private Matching', type: 'success', text: 'Private Matching', action: 'Live', description: 'Profile is matching privately.' };
+        }
+        if (this.state.published) {
+            return { id: 'Live', type: 'success', text: 'Live & Matching', action: 'Live', description: 'Your profile is live to investors.' };
+        }
+        return { id: 'Draft', type: 'warning', text: 'Draft (Unpublished)', action: 'Action Required', description: 'Complete your profile.' };
+    }
+
+    getGlobalBannerHtml() {
+        const state = this.getProfileState();
+        if (state.id === 'Live' || state.id === 'Private Matching') return '';
+        
+        let bannerContent = '';
+        const blockers = this.getOpenBlockers();
+        
+        if (state.id === 'Draft' || state.id === 'Action Required') {
+            const readinessScore = this.getReadinessScore();
+            const kycText = this.state.kycVerified ? 'KYC verified' : 'KYC unverified';
+            const kycColor = this.state.kycVerified ? 'var(--success)' : 'var(--danger)';
+            
+            let nbaDesc = "Upload your founder pitch video (9:16) to publish your profile.";
+            let nbaButton = "Record & upload";
+            let nbaTarget = "pitch";
+            
+            if (!this.state.kycVerified) {
+                nbaDesc = "A regulatory verification is required before matched VCs can request access to your diligence materials.";
+                nbaTarget = "settings";
+                nbaButton = "Verify Identity";
+            } else if (!this.isProfileComplete()) {
+                nbaDesc = "Your team and founder story sections are empty. Investors prioritize founders with complete bios.";
+                nbaTarget = "profile";
+                nbaButton = "Complete Profile";
+            } else if (!this.isFinancialsComplete()) {
+                nbaDesc = "Please enter your Revenue Status, Burn Rate, and Runway months to complete matchmaking data.";
+                nbaTarget = "profile";
+                nbaButton = "Enter Financials";
+            } else if (!this.isRaiseComplete()) {
+                nbaDesc = "Let VCs know how much you are raising, your valuation expectations, and what this milestone unlocks.";
+                nbaTarget = "profile";
+                nbaButton = "Setup Raise";
+            } else if (!this.isPitchComplete()) {
+                nbaDesc = "Funding Easy uses a short-form vertical video feed to match rounds. Upload your 9:16 pitch video now.";
+                nbaTarget = "pitch";
+                nbaButton = "Record & Upload";
+            } else if (!this.isDocsComplete()) {
+                nbaDesc = "Ensure your articles of incorporation and cap tables are uploaded in the secure vault.";
+                nbaTarget = "documents";
+                nbaButton = "Upload Diligence";
+            }
+
+            bannerContent = `
+                <div style="background: var(--surface-2); border: 1px solid var(--border-subtle); border-radius: 12px; margin-bottom: 32px; overflow: hidden;">
+                    <div style="padding: 12px 24px; background: rgba(0,0,0,0.1); border-bottom: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                        <div style="font-size: 0.85rem; color: var(--text-secondary); display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                            <span style="color: var(--text-primary); font-weight: 600;">${this.state.company.name || 'Your Startup'}</span>
+                            <span style="color: var(--border-subtle);">·</span>
+                            <span style="color: ${kycColor};">${kycText}</span>
+                            <span style="color: var(--border-subtle);">·</span>
+                            <span>Profile readiness ${readinessScore}%</span>
+                            <span style="color: var(--border-subtle);">·</span>
+                            <span>${blockers.length} item${blockers.length > 1 ? 's' : ''} remaining</span>
                         </div>
-                        <div>
-                            <h4 style="font-size: 0.95rem; font-weight: 600; color: var(--text-primary); margin: 0 0 4px 0;">Startup Profile Ready</h4>
-                            <p style="font-size: 0.825rem; color: var(--text-secondary); margin: 0; line-height: 1.4;">All checklist parameters are met. Go live to open matchmaking loops with live investors.</p>
+                        <button class="btn nav-trigger" data-target="profile" style="background: transparent; border: 1px solid var(--border-subtle); color: var(--text-primary); padding: 4px 12px; font-size: 0.75rem; border-radius: 4px;">Preview profile</button>
+                    </div>
+                    <div style="padding: 24px; display: flex; gap: 16px;">
+                        <div style="flex: 1;">
+                            <h4 style="color: var(--text-primary); font-weight: 600; margin: 0 0 8px 0; font-size: 1.15rem;">Complete setup to unlock discovery</h4>
+                            <p style="color: var(--text-secondary); font-size: 0.9rem; margin: 0 0 20px 0;">${nbaDesc}</p>
+                            <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                                <button class="btn btn-primary nav-trigger" data-target="${nbaTarget}" style="font-size: 0.875rem; padding: 8px 20px; font-weight: 600;">${nbaButton}</button>
+                                <button class="btn btn-secondary nav-trigger" data-target="readiness" style="font-size: 0.875rem; padding: 8px 20px; font-weight: 600; background: transparent; border: 1px solid var(--border-subtle);">Go to readiness</button>
+                            </div>
                         </div>
                     </div>
-                    <button class="btn btn-primary nav-trigger" data-target="readiness" style="font-size: 0.825rem; padding: 10px 20px; font-weight: 600; min-height: 38px;">Publish Profile</button>
+                </div>
+            `;
+        } else if (state.id === 'Under Review') {
+            bannerContent = `
+                <div style="background: var(--warning-soft); border: 1px solid var(--warning); padding: 20px 24px; border-radius: 12px; margin-bottom: 32px; display: flex; align-items: center; justify-content: space-between; gap: 16px;">
+                    <div style="display: flex; gap: 16px; align-items: flex-start;">
+                        <div style="color: var(--warning); flex-shrink: 0; padding-top: 2px;">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                        </div>
+                        <div>
+                            <h4 style="color: var(--text-primary); font-weight: 600; margin: 0 0 4px 0; font-size: 1rem;">Startup Profile Ready</h4>
+                            <p style="color: var(--text-secondary); font-size: 0.875rem; margin: 0;">All criteria met. Publish your profile to open matching loops.</p>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" id="bannerPublishBtn" style="font-size: 0.825rem; padding: 8px 16px; font-weight: 600; flex-shrink: 0;">Publish Profile</button>
+                </div>
+            `;
+        } else if (state.id === 'Paused') {
+             bannerContent = `
+                <div style="background: var(--surface-2); border: 1px solid var(--border-subtle); padding: 20px 24px; border-radius: 12px; margin-bottom: 32px; display: flex; align-items: center; justify-content: space-between; gap: 16px;">
+                    <div style="display: flex; gap: 16px; align-items: flex-start;">
+                        <div style="color: var(--text-secondary); flex-shrink: 0; padding-top: 2px;">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+                        </div>
+                        <div>
+                            <h4 style="color: var(--text-primary); font-weight: 600; margin: 0 0 4px 0; font-size: 1rem;">Profile Paused</h4>
+                            <p style="color: var(--text-secondary); font-size: 0.875rem; margin: 0;">Your profile is hidden from all investors. No new matches will be generated.</p>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" id="bannerResumeBtn" style="font-size: 0.825rem; padding: 8px 16px; font-weight: 600; flex-shrink: 0;">Resume Matching</button>
                 </div>
             `;
         }
-        const keyBlocker = blockers[0];
-        const displayBody = keyBlocker.toLowerCase().includes("pitch video") ? 
-            "Your profile cannot go live until a founder pitch video is uploaded." :
-            `${keyBlocker} is required. Your profile cannot go live until all readiness criteria are met.`;
-
-        return `
-            <div style="background: linear-gradient(135deg, rgba(183, 80, 80, 0.15) 0%, rgba(183, 80, 80, 0.05) 100%); border: 1px solid var(--danger); padding: 20px 28px; border-radius: 12px; margin-top: 12px; margin-bottom: 40px; display: flex; justify-content: space-between; align-items: center; gap: 24px; box-shadow: 0 8px 32px rgba(183, 80, 80, 0.12); flex-wrap: wrap;">
-                <div style="display: flex; align-items: center; gap: 16px; flex: 1; min-width: 260px;">
-                    <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--danger-soft); display: flex; align-items: center; justify-content: center; color: var(--danger); flex-shrink: 0;">
-                        ${ICONS.alert}
-                    </div>
-                    <div>
-                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-                            <h4 style="font-size: 0.95rem; font-weight: 600; color: var(--text-primary); margin: 0;">Publishing blocked</h4>
-                            <span class="badge badge-danger" style="font-size: 9px; padding: 2px 6px; text-transform: uppercase;">Action required</span>
-                        </div>
-                        <p style="font-size: 0.825rem; color: var(--text-secondary); margin: 0; line-height: 1.4;">${displayBody}</p>
-                    </div>
-                </div>
-                <button class="btn btn-ghost nav-trigger" data-target="readiness" style="font-size: 0.825rem; padding: 10px 20px; font-weight: 600; min-height: 38px; background: var(--surface-2); color: var(--text-secondary); border: 1px solid var(--border-subtle); border-radius: 8px; cursor: pointer;">Complete checklist</button>
-            </div>
-        `;
+        
+        return bannerContent;
     }
-
     async getHtml() {
         return `
             <style>
@@ -669,10 +750,8 @@ export default class extends AbstractView {
     }
 
     getHeaderHtml() {
-        const publishedState = this.state.published ? 
-            `<span class="status-success" style="padding:4px 12px; font-size: 0.75rem;">Published & Matching</span>` :
-            `<span class="status-warning" style="padding:4px 12px; font-size: 0.75rem;">Draft (Unpublished)</span>`;
-            
+        const state = this.getProfileState();
+        
         const kycState = this.state.kycVerified ? 
             `<span class="status-success" style="padding:4px 12px; font-size: 0.75rem;">KYC Verified</span>` :
             `<span class="status-danger" style="padding:4px 12px; font-size: 0.75rem;">KYC Unverified</span>`;
@@ -684,17 +763,17 @@ export default class extends AbstractView {
         const pageTitle = isPitchTab ? 'Pitch Center' : this.getTabTitle();
         const helperText = isPitchTab ? 
             'Publish and manage your founder elevator video pitch.' : 
-            'Operational overview for your live fundraising workflow.';
+            (this.state.published ? 'Operational overview for your live fundraising workflow.' : 'Complete your profile, manage diligence, and prepare for investor engagement.');
 
         return `
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 64px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 32px; gap: 24px; flex-wrap: wrap; width: 100%;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px; padding-bottom: 24px; gap: 24px; flex-wrap: wrap; width: 100%;">
                 <div style="flex: 1; min-width: 280px;">
                     ${breadcrumbHtml}
-                    <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 12px; flex-wrap: wrap;">
+                    <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 8px; flex-wrap: wrap;">
                         <h1 style="font-size: 1.85rem; font-weight: 600; color:var(--text-primary); margin:0; letter-spacing: -0.02em;">${pageTitle}</h1>
                         <div style="display: flex; gap: 10px;">
                             ${kycState}
-                            ${publishedState}
+                            <span class="status-${state.type}" style="padding:4px 12px; font-size: 0.75rem;">${state.text}</span>
                         </div>
                     </div>
                     <p style="color: var(--text-muted); font-size: 0.9rem; margin:0; padding-top: 4px;">${helperText}</p>
@@ -762,129 +841,51 @@ export default class extends AbstractView {
     }
 
     getOverviewTabHtml() {
-        const score = this.getReadinessScore();
+        const state = this.getProfileState();
         const blockers = this.getOpenBlockers();
         const activeDeals = this.state.pipeline.filter(d => d.stage !== 'Closed Lost').length;
         const upcomingMeets = this.state.meetings.filter(m => m.status === 'Scheduled').length;
         const requestedDocsCount = this.state.pipeline.filter(d => d.stage === 'Diligence').length;
         
-        // Next Best Action Dynamic Configs
-        let nbaText = "Review and Publish Profile";
-        let nbaDesc = "All readiness criteria are met. Publish your profile to open matching loops with 12+ qualified VCs.";
-        let nbaTarget = "readiness";
-        let nbaButton = "Go Live";
-
-        if (!this.state.kycVerified) {
-            nbaText = "Complete Identity KYC Verification";
-            nbaDesc = "A regulatory verification is required before matched VCs can request access to your diligence materials.";
-            nbaTarget = "settings";
-            nbaButton = "Verify Identity";
-        } else if (!this.isProfileComplete()) {
-            nbaText = "Add Startup Story & Co-founders";
-            nbaDesc = "Your team and founder story sections are empty. Investors prioritize founders with complete bios.";
-            nbaTarget = "profile";
-            nbaButton = "Complete Profile";
-        } else if (!this.isFinancialsComplete()) {
-            nbaText = "Complete Financial Metrics & Burn";
-            nbaDesc = "Please enter your Revenue Status, Burn Rate, and Runway months to complete matchmaking data.";
-            nbaTarget = "profile";
-            nbaButton = "Enter Financials";
-        } else if (!this.isRaiseComplete()) {
-            nbaText = "Provide Raise Details & Funds Narrative";
-            nbaDesc = "Let VCs know how much you are raising, your valuation expectations, and what this milestone unlocks.";
-            nbaTarget = "profile";
-            nbaButton = "Setup Raise";
-        } else if (!this.isPitchComplete()) {
-            nbaText = "Upload Founder Pitch Video";
-            nbaDesc = "Funding Easy uses a short-form vertical video feed to match rounds. Upload your 9:16 pitch video now.";
-            nbaTarget = "pitch";
-            nbaButton = "Record & Upload";
-        } else if (!this.isDocsComplete()) {
-            nbaText = "Provide Diligence Documents";
-            nbaDesc = "Ensure your articles of incorporation and cap tables are uploaded in the secure vault.";
-            nbaTarget = "documents";
-            nbaButton = "Upload Diligence";
-        } else if (this.state.published) {
-            nbaText = "Manage Investor Pipeline Matches";
-            nbaDesc = "Your profile is live! Review VC introductions, handle diligence requests, and scheduling calendars.";
-            nbaTarget = "pipeline";
-            nbaButton = "Go to Pipeline";
-        }
-
         return `
-            <!-- NextActionHeroCard Component Spec -->
-            <div id="nbaBanner" class="recommendation-card" style="margin-bottom: 40px; display: flex; justify-content: space-between; align-items: center; gap: 32px; flex-wrap: wrap;">
-                <div style="flex: 1; min-width: 280px;">
-                    <div style="display: inline-flex; align-items: center; gap: 6px; color: var(--brand-secondary); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; margin-bottom: 12px; letter-spacing: 0.08em; background: rgba(15,107,111,0.08); padding: 4px 10px; border-radius: 99px;">
-                        Publishing blocked
+            ${this.getGlobalBannerHtml()}
+            
+            <div style="display: grid; grid-template-columns: 1fr 340px; gap: 32px;">
+                <div>
+                    <div class="founder-card" style="margin-bottom: 0;">
+                        <h3 style="font-size: 1.15rem; font-weight: 500; margin-bottom: 20px; color:var(--text-primary); font-family: 'Lora', serif;">Priority Tasks</h3>
+                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                            ${this.getActionCenterRowsHtml()}
+                        </div>
                     </div>
-                    <h2 style="font-size: 1.6rem; font-weight: 500; margin-bottom: 12px; color: var(--text-primary); font-family: 'Lora', serif;">${nbaText}</h2>
-                    <p style="color: var(--text-secondary); font-size: 0.9rem; max-width: 600px; margin: 0 0 24px 0; line-height: 1.6;">${nbaDesc}</p>
-                    <button class="btn btn-primary nav-trigger" data-target="${nbaTarget}" style="padding: 12px 28px; font-weight: 600; min-height: 44px;">${nbaButton}</button>
                 </div>
-                <!-- Vertical Video Mock Frame on Right -->
-                <div style="width: 130px; height: 190px; background: rgba(15, 17, 23, 0.6); border: 2px dashed rgba(15, 107, 111, 0.25); border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; flex-shrink: 0;">
-                    <div style="width: 44px; height: 44px; border-radius: 50%; background: var(--brand-secondary-soft); display: flex; align-items: center; justify-content: center; border: 1px solid rgba(15, 107, 111, 0.2);">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--brand-secondary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
+
+                <div>
+                    <div class="founder-card" style="margin-bottom: 24px; padding: 24px;">
+                        <h3 style="font-size: 0.9rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 24px;">Operational Status</h3>
+                        
+                        <div style="display: flex; flex-direction: column; gap: 20px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 16px; border-bottom: 1px solid var(--border-subtle);">
+                                <span style="color: var(--text-secondary); font-size: 0.95rem;">${this.state.published ? 'Active Deals' : 'Private Matches'}</span>
+                                <span style="color: var(--text-primary); font-weight: 600; font-size: 1.1rem; font-variant-numeric: tabular-nums;">${activeDeals}</span>
+                            </div>
+                            
+                            <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 16px; border-bottom: 1px solid var(--border-subtle);">
+                                <span style="color: var(--text-secondary); font-size: 0.95rem;">Diligence Requests</span>
+                                <span style="color: var(--text-primary); font-weight: 600; font-size: 1.1rem; font-variant-numeric: tabular-nums;">${requestedDocsCount}</span>
+                            </div>
+                            
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="color: var(--text-secondary); font-size: 0.95rem;">Upcoming Meetings</span>
+                                <span style="color: var(--text-primary); font-weight: 600; font-size: 1.1rem; font-variant-numeric: tabular-nums;">${upcomingMeets}</span>
+                            </div>
+                        </div>
                     </div>
-                    <span style="font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Vertical video required</span>
-                </div>
-            </div>
-
-            <!-- MetricsGrid Component Spec -->
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; margin-bottom: 40px;">
-                <!-- MetricCard 1 -->
-                <div class="founder-card nav-trigger" data-target="readiness" style="cursor: pointer; padding: 28px; transition: transform 0.2s, border-color 0.2s; border-top: 3px solid var(--brand-secondary); margin-bottom: 0;" onmouseover="this.style.transform='translateY(-2px)'; this.style.borderColor='rgba(15, 107, 111, 0.4)';" onmouseout="this.style.transform='none'; this.style.borderColor='rgba(255,255,255,0.08)';">
-                    <div style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.05em; margin-bottom: 12px;">Readiness Rating</div>
-                    <div style="font-size: 2.25rem; font-weight: 500; color: var(--text-primary); margin-bottom: 8px; font-variant-numeric: tabular-nums;">${score}%</div>
-                    <div style="font-size: 0.8rem; color: var(--text-secondary); text-decoration: underline; text-underline-offset: 4px;">${blockers.length === 0 ? 'All parameters complete' : blockers.length + ' task' + (blockers.length === 1 ? '' : 's') + ' remaining'}</div>
-                </div>
-                
-                <!-- MetricCard 2 -->
-                <div class="founder-card nav-trigger" data-target="pipeline" style="cursor: pointer; padding: 28px; transition: transform 0.2s, border-color 0.2s; border-top: 3px solid var(--brand-secondary); margin-bottom: 0;" onmouseover="this.style.transform='translateY(-2px)'; this.style.borderColor='rgba(15, 107, 111, 0.4)';" onmouseout="this.style.transform='none'; this.style.borderColor='rgba(255,255,255,0.08)';">
-                    <div style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.05em; margin-bottom: 12px;">Active Matches</div>
-                    <div style="font-size: 2.25rem; font-weight: 500; color: var(--text-primary); margin-bottom: 8px; font-variant-numeric: tabular-nums;">${activeDeals}</div>
-                    <div style="font-size: 0.8rem; color: var(--text-secondary); text-decoration: underline; text-underline-offset: 4px;">VCs matched & reviewing pipeline</div>
-                </div>
-                
-                <!-- MetricCard 3 -->
-                <div class="founder-card nav-trigger" data-target="meetings" style="cursor: pointer; padding: 28px; transition: transform 0.2s, border-color 0.2s; border-top: 3px solid var(--success); margin-bottom: 0;" onmouseover="this.style.transform='translateY(-2px)'; this.style.borderColor='rgba(63, 138, 87, 0.4)';" onmouseout="this.style.transform='none'; this.style.borderColor='rgba(255,255,255,0.08)';">
-                    <div style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.05em; margin-bottom: 12px;">Upcoming Meetings</div>
-                    <div style="font-size: 2.25rem; font-weight: 500; color: var(--text-primary); margin-bottom: 8px; font-variant-numeric: tabular-nums;">${upcomingMeets}</div>
-                    <div style="font-size: 0.8rem; color: var(--text-secondary); text-decoration: underline; text-underline-offset: 4px;">Calendars synced & Zoom generated</div>
-                </div>
-                
-                <!-- MetricCard 4 -->
-                <div class="founder-card nav-trigger" data-target="readiness" data-scrollto="readinessBlockersSection" style="cursor: pointer; padding: 28px; transition: transform 0.2s, border-color 0.2s; margin-bottom: 0;" onmouseover="this.style.transform='translateY(-2px)';" onmouseout="this.style.transform='none';">
-                    <div style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.05em; margin-bottom: 12px;">Outstanding Blockers</div>
-                    <div style="font-size: 2.25rem; font-weight: 500; color: ${blockers.length > 0 ? 'var(--danger)' : 'var(--success)'}; margin-bottom: 8px; font-variant-numeric: tabular-nums;">${blockers.length}</div>
-                    <div style="font-size: 0.8rem; color: var(--text-secondary); text-decoration: underline; text-underline-offset: 4px;">Gating factors to live feed</div>
-                </div>
-                
-                <!-- MetricCard 5 -->
-                <div class="founder-card metric-click-trigger" data-metric="diligence-access" style="cursor: pointer; padding: 28px; transition: transform 0.2s, border-color 0.2s; margin-bottom: 0;" onmouseover="this.style.transform='translateY(-2px)';" onmouseout="this.style.transform='none';">
-                    <div style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.05em; margin-bottom: 12px;">Diligence Vault Access</div>
-                    <div style="font-size: 2.25rem; font-weight: 500; color: var(--text-primary); margin-bottom: 8px; font-variant-numeric: tabular-nums;">${requestedDocsCount}</div>
-                    <div style="font-size: 0.8rem; color: var(--text-secondary); text-decoration: underline; text-underline-offset: 4px;">Pending requests from matched VCs</div>
-                </div>
-                
-                <!-- MetricCard 6 -->
-                <div class="founder-card nav-trigger" data-target="profile" data-subtab="raise" style="cursor: pointer; padding: 28px; transition: transform 0.2s, border-color 0.2s; margin-bottom: 0;" onmouseover="this.style.transform='translateY(-2px)';" onmouseout="this.style.transform='none';">
-                    <div style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.05em; margin-bottom: 12px;">Round Target Raise</div>
-                    <div style="font-size: 2.25rem; font-weight: 500; color: var(--text-primary); margin-bottom: 8px; font-variant-numeric: tabular-nums;">${this.state.raise.target || 'Not Set'}</div>
-                    <div style="font-size: 0.8rem; color: var(--text-secondary); text-decoration: underline; text-underline-offset: 4px;">Current round target</div>
-                </div>
-            </div>
-
-            <!-- ActionCenter Component Spec -->
-            <div class="founder-card" style="margin-bottom: 0; padding: 28px;">
-                <h3 style="font-size: 1.15rem; font-weight: 500; margin-bottom: 20px; color:var(--text-primary); font-family: 'Lora', Georgia, serif;">Priority Tasks</h3>
-                <div style="display: flex; flex-direction: column; gap: 12px;">
-                    ${this.getActionCenterRowsHtml()}
                 </div>
             </div>
         `;
     }
+
 
     getActionCenterRowsHtml() {
         if (this.state.alerts.length === 0) {
@@ -910,8 +911,7 @@ export default class extends AbstractView {
                     </div>
                     <!-- 3. Review CTA right -->
                     <div style="display: flex; align-items: center; justify-content: flex-end; width: 120px; min-width: 120px;">
-                        &nbsp;
-                        <button class="btn btn-secondary nav-trigger" data-target="${a.actionTab}" style="padding: 8px 16px; font-size: 0.8rem; font-weight: 600; border-color: rgba(255,255,255,0.1); background: transparent; min-height: 36px; width: 100%; text-align: center;">Review</button>
+                        <button class="btn btn-primary nav-trigger" data-target="${a.actionTab}" style="padding: 8px 16px; font-size: 0.8rem; font-weight: 600; min-height: 36px; width: 100%; text-align: center;">Review Task</button>
                     </div>
                 </div>
             `;
@@ -1215,7 +1215,7 @@ export default class extends AbstractView {
             <div class="founder-card" style="display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 32px; padding: 32px; margin-bottom: 32px;">
                 <div>
                     <h3 style="font-size: 1.3rem; font-weight: 600; margin-bottom: 8px; color: var(--text-primary); font-family: 'Lora', serif;">Upload Pitch Video</h3>
-                    <p style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 24px; line-height: 1.5;">Funding Easy matches rounds via an interactive vertical feed. Matched investors swipe to watch this elevator pitch first.</p>
+                    <p style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 24px; line-height: 1.5;">Enhance your profile with an optional elevator pitch. This video is <strong>only</strong> visible to matched investors who have passed the double opt-in phase.</p>
                     
                     <div id="pitchUploadCard" style="border: 2px dashed var(--border-subtle); background: var(--bg-base); padding: 32px; border-radius: 12px; text-align: center; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.borderColor='var(--brand-secondary)'" onmouseout="this.style.borderColor='var(--border-subtle)'">
                         <input type="file" id="pitchVideoUploader" style="display: none;" accept="video/*">
@@ -1469,6 +1469,13 @@ export default class extends AbstractView {
                         <span>${alertText}</span>
                     </div>
                     <button class="btn btn-primary nav-trigger" data-target="readiness" style="font-size: 0.75rem; padding: 6px 12px; height: 28px; min-height: 28px; background: ${hasBlockers ? 'var(--brand-secondary)' : 'var(--success)'}; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">${btnText}</button>
+                </div>
+            `;
+        } else {
+            pipelineAlertHtml = `
+                <div style="background: rgba(200, 164, 93, 0.1); border: 1px solid rgba(200, 164, 93, 0.3); color: var(--text-primary); padding: 16px 20px; border-radius: 8px; margin-bottom: 24px; display: flex; align-items: center; gap: 12px; font-size: 0.9rem;">
+                    <span style="color: var(--accent); font-weight: 700; font-size: 1.2rem;">ℹ</span>
+                    <span><strong>Double Opt-In Required:</strong> Investors are reviewing your anonymous profile. You must explicitly approve requests before contact information is shared.</span>
                 </div>
             `;
         }
@@ -1786,7 +1793,7 @@ export default class extends AbstractView {
 
                     <div style="background:var(--brand-secondary-soft); border: 1px solid var(--brand-secondary); padding:20px; border-radius:6px;">
                         <h4 style="font-weight:600; color:var(--brand-secondary); margin-bottom:8px; font-size:0.95rem;">Success Fee Agreement</h4>
-                        <p style="font-size:0.875rem; color:var(--text-secondary); margin:0; line-height:1.5;">Funding Easy operates under a transparent **1.5% platform success fee** calculated upon closure of coordinated capital allocations. There are zero listing or listing-gated pipeline listing charges.</p>
+                        <p style="font-size:0.875rem; color:var(--text-secondary); margin:0; line-height:1.5;">Funding Easy operates under a transparent success fee calculated upon closure of coordinated capital allocations. There are zero listing or listing-gated pipeline listing charges.</p>
                     </div>
                 </div>
             </div>

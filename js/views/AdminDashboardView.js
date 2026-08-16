@@ -7,7 +7,17 @@ export default class extends AbstractView {
         this.state = {
             activeModule: 'overview',
             selectedKycId: null,
+            kycFilterStatus: 'All',
+            pitchFilterStatus: 'All',
+            introFilterStatus: 'All',
+            coordinationFilterStatus: 'All',
+            dealsFilterStatus: 'All',
+            riskFilterStatus: 'All Open',
             selectedPitchId: null,
+            selectedCheckboxes: [],
+            emergencyLockdown: false,
+            showDualAdminModal: false,
+            dualAdminActionTarget: null,
             kycQueue: [
                 { id: 'k1', name: 'Nexus Health', role: 'Entrepreneur', submitted: '2 hours ago', type: 'Entity KYC', risk: 'Low', status: 'Pending Review', assigned: 'Unassigned', lastPlaidCheck: '2026-06-03 10:05:00 UTC' },
                 { id: 'k2', name: 'John Doe', role: 'Investor', submitted: '5 hours ago', type: 'Identity KYC', risk: 'Medium', status: 'Pending Review', assigned: 'Sarah (Compliance)', lastPlaidCheck: '2026-06-03 07:05:00 UTC' }
@@ -161,7 +171,7 @@ export default class extends AbstractView {
                 .adm-card { background: var(--adm-surface); border: 1px solid var(--adm-border); border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
                 .adm-table { width: 100%; border-collapse: collapse; text-align: left; }
                 .adm-table th { padding: 16px 24px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: var(--adm-text-muted); border-bottom: 1px solid var(--adm-border); background: var(--bg-surface-2); white-space: nowrap; }
-                .adm-table td { padding: 16px 24px; font-size: 0.875rem; border-bottom: 1px solid var(--adm-border); vertical-align: middle; white-space: nowrap; max-width: 300px; overflow: hidden; text-overflow: ellipsis; color: var(--text-primary); }
+                .adm-table td { padding: 16px 24px; font-size: 0.875rem; border-bottom: 1px solid var(--adm-border); vertical-align: middle; white-space: nowrap; color: var(--text-primary); }
                 .adm-table tr:hover td { background: var(--bg-hover); cursor: pointer; }
                 .adm-badge { padding: 4px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; }
                 .adm-badge.pending { background: var(--warning-soft); color: #f0b35a; }
@@ -176,7 +186,21 @@ export default class extends AbstractView {
                 .adm-btn-danger { background: var(--adm-danger); color: #fff; }
                 
                 /* Layout Modifiers */
-                .adm-split-view { display: grid; grid-template-columns: 1fr 400px; gap: 24px; height: 100%; align-items: flex-start; }
+                .adm-metric-card { cursor: pointer; transition: all 0.2s; user-select: none; outline: none; }
+                .adm-metric-card:hover { background: var(--bg-hover) !important; }
+                .adm-metric-card.active { border-color: var(--adm-accent) !important; box-shadow: 0 0 0 2px var(--brand-primary-soft); }
+                .adm-split-view { display: flex; flex-direction: column; gap: 24px; height: 100%; align-items: stretch; }
+                .adm-drawer-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+                .adm-drawer-overlay.active { opacity: 1; pointer-events: auto; }
+                .adm-drawer { position: fixed; top: 0; right: 0; width: 500px; max-width: 90vw; height: 100vh; background: var(--adm-surface); box-shadow: -4px 0 24px rgba(0,0,0,0.2); z-index: 1001; transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; overflow: hidden; border-left: 1px solid var(--adm-border); }
+                .adm-drawer.active { transform: translateX(0); }
+                .adm-drawer-header { display: flex; align-items: center; justify-content: space-between; padding: 20px 24px; border-bottom: 1px solid var(--adm-border); background: var(--bg-surface-2); }
+                .adm-drawer-close { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--adm-text-muted); padding: 4px; line-height: 1; transition: color 0.2s; }
+                .adm-drawer-close:hover { color: var(--adm-text); }
+                .adm-drawer-content { flex: 1; overflow-y: auto; padding: 24px; }
+                .adm-drawer-content .adm-card { border: none; box-shadow: none; border-radius: 0; height: auto !important; overflow-y: visible !important; }
+                .adm-drawer-content > .adm-card > div:first-child { padding: 0 0 20px 0; }
+                .adm-drawer-content > .adm-card > div:nth-child(2) { padding: 0; }
                 .header-notif-item:hover { background: var(--bg-hover) !important; }
             </style>
 
@@ -194,25 +218,25 @@ export default class extends AbstractView {
                     
                     <div class="adm-nav-group">
                         <div class="adm-nav-title">Moderation</div>
-                        <div class="adm-nav-item" data-module="verification" tabindex="0" role="button">Verification <span style="background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:10px; font-size:0.7rem; color:#fff;" id="kycNavBadge">${this.state.kycQueue.length}</span></div>
-                        <div class="adm-nav-item" data-module="pitch_review" tabindex="0" role="button">Pitch Review <span style="background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:10px; font-size:0.7rem; color:#fff;" id="pitchNavBadge">${this.state.pitchQueue.length}</span></div>
+                        <div class="adm-nav-item" data-module="verification" tabindex="0" role="button">Verification <span style="background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:10px; font-size:0.7rem; color:#fff;" title="Pending reviews" id="kycNavBadge">${this.state.kycQueue.length}</span></div>
+                        <div class="adm-nav-item" data-module="pitch_review" tabindex="0" role="button">Pitch Review <span style="background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:10px; font-size:0.7rem; color:#fff;" title="Pending moderation" id="pitchNavBadge">${this.state.pitchQueue.length}</span></div>
                         <div class="adm-nav-item" data-module="users" tabindex="0" role="button">Users</div>
                     </div>
                     
                     <div class="adm-nav-group">
                         <div class="adm-nav-title">Deal Workflow</div>
-                        <div class="adm-nav-item" data-module="introductions" tabindex="0" role="button">Introductions <span style="background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:10px; font-size:0.7rem; color:#fff;" id="introNavBadge">${this.state.introductionsQueue.filter(i => i.status === 'Pending Match' || i.status === 'Matched').length}</span></div>
-                        <div class="adm-nav-item" data-module="coordination" tabindex="0" role="button">Coordination <span style="background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:10px; font-size:0.7rem; color:#fff;" id="coordNavBadge">${this.state.coordinationQueue.length}</span></div>
-                        <div class="adm-nav-item" data-module="deals" tabindex="0" role="button">Deals <span style="background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:10px; font-size:0.7rem; color:#fff;" id="dealsNavBadge">${this.state.dealsQueue.filter(d => d.status === 'Live').length}</span></div>
+                        <div class="adm-nav-item" data-module="introductions" tabindex="0" role="button">Introductions <span style="background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:10px; font-size:0.7rem; color:#fff;" title="Pending matches" id="introNavBadge">${this.state.introductionsQueue.filter(i => i.status === 'Pending Match' || i.status === 'Matched').length}</span></div>
+                        <div class="adm-nav-item" data-module="coordination" tabindex="0" role="button">Coordination <span style="background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:10px; font-size:0.7rem; color:#fff;" title="Active cases" id="coordNavBadge">${this.state.coordinationQueue.length}</span></div>
+                        <div class="adm-nav-item" data-module="deals" tabindex="0" role="button">Deals <span style="background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:10px; font-size:0.7rem; color:#fff;" title="Live deals" id="dealsNavBadge">${this.state.dealsQueue.filter(d => d.status === 'Live').length}</span></div>
                     </div>
                     
                     <div class="adm-nav-group">
                         <div class="adm-nav-title">Control</div>
-                        <div class="adm-nav-item" data-module="notifications" tabindex="0" role="button">Notifications <span style="background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:10px; font-size:0.7rem; color:#fff;" id="notifSidebarBadge">0</span></div>
+                        <div class="adm-nav-item" data-module="notifications" tabindex="0" role="button">Notifications <span style="background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:10px; font-size:0.7rem; color:#fff;" title="Unread notifications" id="notifSidebarBadge">0</span></div>
                         <div class="adm-nav-item" data-module="analytics" tabindex="0" role="button">Analytics</div>
                         <div class="adm-nav-item" data-module="audit_logs" tabindex="0" role="button">Audit Logs</div>
                         <div class="adm-nav-item" data-module="permissions" tabindex="0" role="button">Permissions</div>
-                        <div class="adm-nav-item" data-module="risk_flags" tabindex="0" role="button">Risk & Flags <span style="background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:10px; font-size:0.7rem; color:#fff;" id="riskNavBadge">${this.state.riskFlagsQueue.filter(r => r.status !== 'Resolved' && r.status !== 'Dismissed').length}</span></div>
+                        <div class="adm-nav-item" data-module="risk_flags" tabindex="0" role="button">Risk & Flags <span style="background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:10px; font-size:0.7rem; color:#fff;" title="Open flags" id="riskNavBadge">${this.state.riskFlagsQueue.filter(r => r.status !== 'Resolved' && r.status !== 'Dismissed').length}</span></div>
                     </div>
                 </aside>
 
@@ -220,7 +244,7 @@ export default class extends AbstractView {
                     <header class="adm-header">
                         <div class="adm-search">
                             <span style="opacity:0.5; font-size:0.875rem;">🔍</span>
-                            <input type="text" id="globalAdminSearch" placeholder="Search across current view..." aria-label="Search current view">
+                            <input type="text" id="globalAdminSearch" placeholder="Search global platform..." aria-label="Search platform">
                         </div>
                         <div class="adm-header-actions" style="position: relative;">
                             <button class="adm-btn adm-btn-outline" style="padding: 6px 12px; font-size: 0.75rem; border-color:var(--adm-accent); color:var(--adm-accent);">+ Log Action</button>
@@ -244,21 +268,77 @@ export default class extends AbstractView {
                             <div style="display: flex; align-items: center; gap: 8px; cursor:pointer;" tabindex="0" role="button" aria-label="Admin Profile Summary">
                                 <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--adm-primary); color:#fff; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.875rem;">SA</div>
                                 <div style="display: flex; flex-direction: column;">
-                                    <span style="font-size: 0.875rem; font-weight: 600; line-height:1;">System Admin</span>
-                                    <span style="font-size: 0.75rem; color: var(--adm-text-muted); line-height:1; margin-top:4px;">Super Admin</span>
+                                    <span style="font-size: 0.875rem; font-weight: 600; line-height:1;">Jane Doe</span>
+                                    <span style="font-size: 0.75rem; color: var(--adm-text-muted); line-height:1; margin-top:4px;">System Admin</span>
                                 </div>
                             </div>
                         </div>
                     </header>
+                    <div style="display: ${this.state.emergencyLockdown ? 'block' : 'none'}; background: var(--adm-danger); color: #fff; text-align: center; padding: 12px; font-weight: 600; font-size: 0.875rem; letter-spacing: 0.5px; z-index: 9;">&#9888;&#65039; SYSTEM LOCKDOWN ACTIVE: All external transactions and new logins are temporarily suspended</div>
                     <main class="adm-content" id="admMainContent"></main>
                 </div>
             </div>
+            ${this.state.selectedCheckboxes && this.state.selectedCheckboxes.length > 0 ? `
+            <div style="position:fixed; bottom:32px; left:50%; transform:translateX(-50%); background:var(--adm-surface); padding:12px 24px; border-radius:8px; box-shadow:0 10px 30px rgba(0,0,0,0.3); border:1px solid var(--adm-border); display:flex; align-items:center; gap:24px; z-index:9999;">
+                <span style="font-weight:600;">${this.state.selectedCheckboxes.length} Items Selected</span>
+                <div style="display:flex; gap:8px;">
+                    <button class="adm-btn adm-btn-outline" onclick="document.dispatchEvent(new CustomEvent('clearSelection'))">Clear Selection</button>
+                    <button class="adm-btn adm-btn-primary" onclick="alert('Bulk action executed successfully.'); document.dispatchEvent(new CustomEvent('clearSelection'))">Execute Bulk Action</button>
+                </div>
+            </div>` : ''}
+            
+            ${this.state.showDualAdminModal ? `
+            <div class="adm-drawer-overlay active" onclick="document.dispatchEvent(new CustomEvent('closeDualAdmin'))"></div>
+            <div style="position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:var(--adm-surface); padding:32px; border-radius:12px; box-shadow:0 20px 40px rgba(0,0,0,0.4); z-index:1002; width:400px; text-align:center; border: 1px solid var(--adm-border);">
+                <div style="font-size:3rem; margin-bottom:16px;">&#128274;</div>
+                <h2 style="font-size:1.25rem; font-weight:600; margin-bottom:8px;">Dual-Admin Authorization</h2>
+                <p style="color:var(--adm-text-muted); font-size:0.875rem; margin-bottom:24px;">This action requires sign-off from a Compliance Officer. Please enter the secondary authorization PIN.</p>
+                <input type="password" id="dualAdminPin" placeholder="4-Digit PIN" style="width:100%; padding:12px; border:1px solid var(--adm-border); border-radius:6px; font-size:1rem; text-align:center; letter-spacing:8px; margin-bottom:24px; outline:none; background:var(--bg-app); color:var(--adm-text);">
+                <div style="display:flex; gap:12px;">
+                    <button class="adm-btn adm-btn-outline" style="flex:1;" onclick="document.dispatchEvent(new CustomEvent('closeDualAdmin'))">Cancel</button>
+                    <button class="adm-btn adm-btn-primary" style="flex:1;" onclick="document.dispatchEvent(new CustomEvent('authorizeDualAdmin'))">Authorize</button>
+                </div>
+            </div>` : ''}
+
             <!-- Toast container -->
             <div id="admToastContainer" style="position: fixed; bottom: 24px; right: 24px; display: flex; flex-direction: column; gap: 8px; z-index: 99999;"></div>
         `;
     }
 
     init() {
+        document.addEventListener('closeDrawer', () => {
+            this.state.selectedKycId = null;
+            this.state.selectedPitchId = null;
+            this.state.selectedIntroId = null;
+            this.state.selectedCoordinationId = null;
+            this.state.selectedDealId = null;
+            this.state.selectedRiskId = null;
+            this.state.selectedUserId = null;
+            this.renderModule();
+        });
+
+        document.addEventListener('closeDualAdmin', () => {
+            this.state.showDualAdminModal = false;
+            this.state.dualAdminActionTarget = null;
+            this.renderModule();
+        });
+
+        document.addEventListener('authorizeDualAdmin', () => {
+            const pin = document.getElementById('dualAdminPin');
+            if (pin && pin.value === '1234') {
+                this.state.showDualAdminModal = false;
+                this.showToast('Authorized successfully.', 'success');
+                this.renderModule();
+            } else {
+                this.showToast('Invalid PIN.', 'error');
+            }
+        });
+
+        document.addEventListener('triggerDualAdmin', (e) => {
+            this.state.showDualAdminModal = true;
+            this.renderModule();
+        });
+
         const navItems = document.querySelectorAll('.adm-nav-item');
         navItems.forEach(item => {
             item.addEventListener('click', (e) => {
@@ -468,6 +548,15 @@ export default class extends AbstractView {
             });
         }
 
+        const lockdownBtn = document.getElementById('lockdownToggleBtn');
+        if (lockdownBtn) {
+            lockdownBtn.addEventListener('click', () => {
+                this.state.emergencyLockdown = !this.state.emergencyLockdown;
+                this.showToast(this.state.emergencyLockdown ? 'Lockdown activated.' : 'Lockdown deactivated.', this.state.emergencyLockdown ? 'warning' : 'success');
+                this.renderModule();
+            });
+        }
+
         // Attach breadcrumb navigation
         document.querySelectorAll('.adm-breadcrumb-link').forEach(link => {
             link.addEventListener('click', (e) => {
@@ -568,22 +657,30 @@ export default class extends AbstractView {
                 <p style="color: var(--adm-text-muted); font-size: 0.875rem;">Platform operational snapshot for today.</p>
             </div>
             
-            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; margin-bottom: 32px;">
-                <div class="adm-card adm-kpi-card" data-navigate="verification" style="padding: 24px; cursor:pointer; transition: box-shadow 0.2s;" onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow='0 1px 3px rgba(0,0,0,0.05)'">
-                    <div style="color: var(--adm-text-muted); font-size: 0.875rem; font-weight: 500; margin-bottom: 8px;">Pending KYC Reviews</div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 24px; margin-bottom: 32px;">
+                <div class="adm-card adm-kpi-card" data-navigate="verification" style="padding: 24px; cursor:pointer; transition: box-shadow 0.2s; border-left: 4px solid var(--adm-primary); background: linear-gradient(to right, rgba(0,0,0,0.02) 0%, transparent 10px);" onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow='0 1px 3px rgba(0,0,0,0.05)'">
+                    <div style="color: var(--adm-text-muted); font-size: 0.875rem; font-weight: 500; margin-bottom: 8px; display:flex; align-items:center; gap:6px;">
+                        <span style="color:var(--adm-primary);">ðŸ”µ</span> Pending KYC Reviews
+                    </div>
                     <div style="font-size: 2rem; font-weight: 600; color: var(--adm-primary);">${this.state.kycQueue.length}</div>
                 </div>
-                <div class="adm-card adm-kpi-card" data-navigate="pitch_review" style="padding: 24px; cursor:pointer; transition: box-shadow 0.2s;" onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow='0 1px 3px rgba(0,0,0,0.05)'">
-                    <div style="color: var(--adm-text-muted); font-size: 0.875rem; font-weight: 500; margin-bottom: 8px;">Pending Pitch Moderation</div>
+                <div class="adm-card adm-kpi-card" data-navigate="pitch_review" style="padding: 24px; cursor:pointer; transition: box-shadow 0.2s; border-left: 4px solid var(--adm-warning); background: linear-gradient(to right, rgba(245, 158, 11, 0.05) 0%, transparent 10px);" onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow='0 1px 3px rgba(0,0,0,0.05)'">
+                    <div style="color: var(--adm-text-muted); font-size: 0.875rem; font-weight: 500; margin-bottom: 8px; display:flex; align-items:center; gap:6px;">
+                        <span style="color:var(--adm-warning);">ðŸŸ </span> Pending Pitch Moderation
+                    </div>
                     <div style="font-size: 2rem; font-weight: 600; color: var(--adm-warning);">${this.state.pitchQueue.length}</div>
                 </div>
-                <div class="adm-card adm-kpi-card" data-navigate="deals" style="padding: 24px; cursor:pointer; transition: box-shadow 0.2s;" onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow='0 1px 3px rgba(0,0,0,0.05)'">
-                    <div style="color: var(--adm-text-muted); font-size: 0.875rem; font-weight: 500; margin-bottom: 8px;">Stalled Deals</div>
+                <div class="adm-card adm-kpi-card" data-navigate="deals" style="padding: 24px; cursor:pointer; transition: box-shadow 0.2s; border-left: 4px solid var(--adm-danger); background: linear-gradient(to right, rgba(239, 68, 68, 0.05) 0%, transparent 10px);" onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow='0 1px 3px rgba(0,0,0,0.05)'">
+                    <div style="color: var(--adm-text-muted); font-size: 0.875rem; font-weight: 500; margin-bottom: 8px; display:flex; align-items:center; gap:6px;">
+                        <span style="color:var(--adm-danger);">ðŸ”´</span> Stalled Deals
+                    </div>
                     <div style="font-size: 2rem; font-weight: 600; color: var(--adm-danger);">3</div>
                 </div>
-                <div class="adm-card adm-kpi-card" data-navigate="risk_flags" style="padding: 24px; cursor:pointer; transition: box-shadow 0.2s;" onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow='0 1px 3px rgba(0,0,0,0.05)'">
-                    <div style="color: var(--adm-text-muted); font-size: 0.875rem; font-weight: 500; margin-bottom: 8px;">Open Flags / Disputes</div>
-                    <div style="font-size: 2rem; font-weight: 600;">${this.state.riskFlagsQueue.filter(r => r.status !== 'Resolved' && r.status !== 'Dismissed').length}</div>
+                <div class="adm-card adm-kpi-card" data-navigate="risk_flags" style="padding: 24px; cursor:pointer; transition: box-shadow 0.2s; border-left: 4px solid var(--adm-danger); background: linear-gradient(to right, rgba(239, 68, 68, 0.05) 0%, transparent 10px);" onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow='0 1px 3px rgba(0,0,0,0.05)'">
+                    <div style="color: var(--adm-text-muted); font-size: 0.875rem; font-weight: 500; margin-bottom: 8px; display:flex; align-items:center; gap:6px;">
+                        <span style="color:var(--adm-danger);">ðŸ”´</span> Open Flags / Disputes
+                    </div>
+                    <div style="font-size: 2rem; font-weight: 600; color: var(--adm-danger);">${this.state.riskFlagsQueue.filter(r => r.status !== 'Resolved' && r.status !== 'Dismissed').length}</div>
                 </div>
             </div>
 
@@ -641,49 +738,51 @@ export default class extends AbstractView {
             const kyc = this.state.kycQueue.find(k => k.id === this.state.selectedKycId);
             if (kyc) {
                 sidePanel = `
-                    <div class="adm-card" style="display: flex; flex-direction: column; height: calc(100vh - 200px); overflow-y: auto;">
-                        <div style="padding: 24px; border-bottom: 1px solid var(--adm-border); display: flex; justify-content: space-between; align-items: flex-start;">
-                            <div>
-                                <h3 style="font-size: 1.125rem; font-weight: 600;">${kyc.name}</h3>
-                                <div style="color: var(--adm-text-muted); font-size: 0.875rem; margin-top:4px;">${kyc.type} • ID: ${kyc.id}</div>
-                            </div>
-                            <span class="adm-badge pending">${kyc.status}</span>
+                    <div class="adm-drawer-overlay active" onclick="document.dispatchEvent(new CustomEvent('closeDrawer'))"></div>
+                    <div class="adm-drawer active">
+                        <div class="adm-drawer-header">
+                            <h3 style="font-size: 1.125rem; font-weight: 600; margin: 0;">Details</h3>
+                            <button class="adm-drawer-close" onclick="document.dispatchEvent(new CustomEvent('closeDrawer'))">&times;</button>
                         </div>
-                        <div style="padding: 24px; flex: 1;">
-                            <h4 style="font-size: 0.75rem; text-transform: uppercase; color: var(--adm-text-muted); font-weight: 600; margin-bottom: 12px; letter-spacing:0.5px;">Submitted Documents</h4>
-                            <div style="display: flex; gap: 12px; margin-bottom: 24px;">
-                                <div style="width: 120px; height: 160px; background: var(--bg-surface-2); border-radius: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.75rem; color: var(--adm-text-muted); border:1px dashed var(--divider); cursor:pointer;"><span style="font-size:1.5rem; margin-bottom:4px;">📄</span>ID_Front.jpg</div>
-                                <div style="width: 120px; height: 160px; background: var(--bg-surface-2); border-radius: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.75rem; color: var(--adm-text-muted); border:1px dashed var(--divider); cursor:pointer;"><span style="font-size:1.5rem; margin-bottom:4px;">📄</span>ID_Back.jpg</div>
-                            </div>
-                            
-                            <h4 style="font-size: 0.75rem; text-transform: uppercase; color: var(--adm-text-muted); font-weight: 600; margin-bottom: 12px; letter-spacing:0.5px;">Extracted Metadata (Plaid)</h4>
-                            <div style="background: var(--bg-surface-2); padding: 12px; border-radius: 6px; border: 1px solid var(--adm-border); margin-bottom: 24px; font-size: 0.875rem; display: grid; gap: 8px;">
-                                <div style="display: flex; justify-content: space-between;"><span style="color: var(--adm-text-muted);">Name Match:</span> <span style="color: var(--adm-success); font-weight: 500;">99%</span></div>
-                                <div style="display: flex; justify-content: space-between;"><span style="color: var(--adm-text-muted);">DOB Match:</span> <span style="color: var(--adm-success); font-weight: 500;">Exact</span></div>
-                                <div style="display: flex; justify-content: space-between;"><span style="color: var(--adm-text-muted);">Watchlist Hit:</span> <span style="font-weight:500;">None</span></div>
-                                <div style="display: flex; justify-content: space-between;"><span style="color: var(--adm-text-muted);">Verified Check:</span> <span style="font-family: monospace; color: var(--adm-text);">${kyc.lastPlaidCheck}</span></div>
-                            </div>
+                        <div class="adm-drawer-content">
+                            <div class="adm-card" style="display: flex; flex-direction: column; height: calc(100vh - 200px); overflow-y: auto;">
+                                <div style="padding: 24px; border-bottom: 1px solid var(--adm-border); display: flex; justify-content: space-between; align-items: flex-start;">
+                                    <div>
+                                        <h3 style="font-size: 1.125rem; font-weight: 600;">${kyc.name}</h3>
+                                        <div style="color: var(--adm-text-muted); font-size: 0.875rem; margin-top:4px;">${kyc.type} • ID: ${kyc.id}</div>
+                                    </div>
+                                    <span class="adm-badge pending">${kyc.status}</span>
+                                </div>
+                                <div style="padding: 24px; flex: 1;">
+                                    <h4 style="font-size: 0.75rem; text-transform: uppercase; color: var(--adm-text-muted); font-weight: 600; margin-bottom: 12px; letter-spacing:0.5px;">Submitted Documents</h4>
+                                    <div style="display: flex; gap: 12px; margin-bottom: 24px;">
+                                        <div style="width: 120px; height: 160px; background: var(--bg-surface-2); border-radius: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.75rem; color: var(--adm-text-muted); border:1px dashed var(--divider); cursor:pointer;"><span style="font-size:1.5rem; margin-bottom:4px;">📄</span>ID_Front.jpg</div>
+                                        <div style="width: 120px; height: 160px; background: var(--bg-surface-2); border-radius: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.75rem; color: var(--adm-text-muted); border:1px dashed var(--divider); cursor:pointer;"><span style="font-size:1.5rem; margin-bottom:4px;">📄</span>ID_Back.jpg</div>
+                                    </div>
+                                    
+                                    <h4 style="font-size: 0.75rem; text-transform: uppercase; color: var(--adm-text-muted); font-weight: 600; margin-bottom: 12px; letter-spacing:0.5px;">Extracted Metadata (Plaid)</h4>
+                                    <div style="background: var(--bg-surface-2); padding: 12px; border-radius: 6px; border: 1px solid var(--adm-border); margin-bottom: 24px; font-size: 0.875rem; display: grid; gap: 8px;">
+                                        <div style="display: flex; justify-content: space-between;"><span style="color: var(--adm-text-muted);">Name Match:</span> <span style="color: var(--adm-success); font-weight: 500;">99%</span></div>
+                                        <div style="display: flex; justify-content: space-between;"><span style="color: var(--adm-text-muted);">DOB Match:</span> <span style="color: var(--adm-success); font-weight: 500;">Exact</span></div>
+                                        <div style="display: flex; justify-content: space-between;"><span style="color: var(--adm-text-muted);">Watchlist Hit:</span> <span style="font-weight:500;">None</span></div>
+                                        <div style="display: flex; justify-content: space-between;"><span style="color: var(--adm-text-muted);">Verified Check:</span> <span style="font-family: monospace; color: var(--adm-text);">${kyc.lastPlaidCheck}</span></div>
+                                    </div>
 
-                            <h4 style="font-size: 0.75rem; text-transform: uppercase; color: var(--adm-text-muted); font-weight: 600; margin-bottom: 12px; letter-spacing:0.5px;">Reviewer Notes</h4>
-                            <textarea placeholder="Add internal notes regarding this decision..." style="width: 100%; height: 80px; padding: 12px; border: 1px solid var(--adm-border); border-radius: 6px; resize: none; font-family: inherit; font-size: 0.875rem; margin-bottom: 24px; outline: none; box-sizing:border-box;"></textarea>
-                        </div>
-                        <div style="padding: 24px; border-top: 1px solid var(--adm-border); display: flex; flex-direction: column; gap: 12px;">
-                            <button class="adm-btn adm-btn-primary" style="width: 100%;">Approve Verification</button>
-                            <div style="display: flex; gap: 12px;">
-                                <button class="adm-btn adm-btn-outline" style="flex: 1;">Request Resubmission</button>
-                                <button class="adm-btn adm-btn-danger" style="flex: 1;">Reject</button>
+                                    <h4 style="font-size: 0.75rem; text-transform: uppercase; color: var(--adm-text-muted); font-weight: 600; margin-bottom: 12px; letter-spacing:0.5px;">Reviewer Notes</h4>
+                                    <textarea placeholder="Add internal notes regarding this decision..." style="width: 100%; height: 80px; padding: 12px; border: 1px solid var(--adm-border); border-radius: 6px; resize: none; font-family: inherit; font-size: 0.875rem; margin-bottom: 24px; outline: none; box-sizing:border-box;"></textarea>
+                                </div>
+                                <div style="padding: 24px; border-top: 1px solid var(--adm-border); display: flex; flex-direction: column; gap: 12px;">
+                                    <button class="adm-btn adm-btn-primary" style="width: 100%;">Approve Verification</button>
+                                    <div style="display: flex; gap: 12px;">
+                                        <button class="adm-btn adm-btn-outline" style="flex: 1;">Request Resubmission</button>
+                                        <button class="adm-btn adm-btn-danger" style="flex: 1;">Reject</button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 `;
             }
-        } else {
-            sidePanel = `
-                <div class="adm-card" style="display: flex; align-items: center; justify-content: center; height: 100%; color: var(--adm-text-muted); font-size: 0.875rem; flex-direction: column; gap: 12px;">
-                    <span style="font-size: 2.5rem; opacity:0.5;">🛡️</span>
-                    Select a record to review documents and decide.
-                </div>
-            `;
         }
 
         const tbody = this.state.kycQueue.length === 0 ? 
@@ -744,56 +843,59 @@ export default class extends AbstractView {
             const p = this.state.pitchQueue.find(p => p.id === this.state.selectedPitchId);
             if (p) {
                 sidePanel = `
-                    <div class="adm-card" style="display: flex; flex-direction: column; height: calc(100vh - 200px); overflow-y: auto;">
-                        <div style="padding: 24px; border-bottom: 1px solid var(--adm-border);">
-                            <h3 style="font-size: 1.125rem; font-weight: 600;">${p.startup}</h3>
-                            <div style="color: var(--adm-text-muted); font-size: 0.875rem; margin-top:4px;">Founder: ${p.founder}</div>
+                    <div class="adm-drawer-overlay active" onclick="document.dispatchEvent(new CustomEvent('closeDrawer'))"></div>
+                    <div class="adm-drawer active">
+                        <div class="adm-drawer-header">
+                            <h3 style="font-size: 1.125rem; font-weight: 600; margin: 0;">Details</h3>
+                            <button class="adm-drawer-close" onclick="document.dispatchEvent(new CustomEvent('closeDrawer'))">&times;</button>
                         </div>
-                        <div style="padding: 24px; flex: 1;">
-                            <div style="width: 100%; height: 200px; background: #0f172a; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #fff; margin-bottom: 24px; position: relative; cursor:pointer; overflow:hidden;">
-                                <div style="width:48px; height:48px; border-radius:50%; background:rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center; font-size:1.5rem;">▶</div>
-                                <div style="position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.6); padding: 2px 6px; border-radius: 4px; font-size: 0.75rem;">03:15</div>
-                            </div>
-                            
-                            <h4 style="font-size: 0.75rem; text-transform: uppercase; color: var(--adm-text-muted); font-weight: 600; margin-bottom: 12px; letter-spacing:0.5px;">Funding Ask Snapshot</h4>
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;">
-                                <div style="background: var(--bg-surface-2); padding: 12px; border-radius: 6px; border: 1px solid var(--adm-border);">
-                                    <div style="font-size: 0.75rem; color: var(--adm-text-muted); margin-bottom: 4px;">Target</div>
-                                    <div style="font-weight: 600; font-size:1.125rem;">$1.5M</div>
+                        <div class="adm-drawer-content">
+                            <div class="adm-card" style="display: flex; flex-direction: column; height: calc(100vh - 200px); overflow-y: auto;">
+                                <div style="padding: 24px; border-bottom: 1px solid var(--adm-border);">
+                                    <h3 style="font-size: 1.125rem; font-weight: 600;">${p.startup}</h3>
+                                    <div style="color: var(--adm-text-muted); font-size: 0.875rem; margin-top:4px;">Founder: ${p.founder}</div>
                                 </div>
-                                <div style="background: var(--bg-surface-2); padding: 12px; border-radius: 6px; border: 1px solid var(--adm-border);">
-                                    <div style="font-size: 0.75rem; color: var(--adm-text-muted); margin-bottom: 4px;">Instrument</div>
-                                    <div style="font-weight: 600; font-size:1.125rem;">SAFE (Post)</div>
-                                </div>
-                            </div>
+                                <div style="padding: 24px; flex: 1;">
+                                    <div style="width: 100%; height: 200px; background: #0f172a; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #fff; margin-bottom: 24px; position: relative; cursor:pointer; overflow:hidden;">
+                                        <div style="width:48px; height:48px; border-radius:50%; background:rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center; font-size:1.5rem;">▶</div>
+                                        <div style="position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.6); padding: 2px 6px; border-radius: 4px; font-size: 0.75rem;">03:15</div>
+                                    </div>
+                                    
+                                    <h4 style="font-size: 0.75rem; text-transform: uppercase; color: var(--adm-text-muted); font-weight: 600; margin-bottom: 12px; letter-spacing:0.5px;">Funding Ask Snapshot</h4>
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;">
+                                        <div style="background: var(--bg-surface-2); padding: 12px; border-radius: 6px; border: 1px solid var(--adm-border);">
+                                            <div style="font-size: 0.75rem; color: var(--adm-text-muted); margin-bottom: 4px;">Target</div>
+                                            <div style="font-weight: 600; font-size:1.125rem;">$1.5M</div>
+                                        </div>
+                                        <div style="background: var(--bg-surface-2); padding: 12px; border-radius: 6px; border: 1px solid var(--adm-border);">
+                                            <div style="font-size: 0.75rem; color: var(--adm-text-muted); margin-bottom: 4px;">Instrument</div>
+                                            <div style="font-weight: 600; font-size:1.125rem;">SAFE (Post)</div>
+                                        </div>
+                                    </div>
 
-                            <h4 style="font-size: 0.75rem; text-transform: uppercase; color: var(--adm-text-muted); font-weight: 600; margin-bottom: 12px; letter-spacing:0.5px;">Moderation Controls</h4>
-                            <select style="width: 100%; padding: 8px 12px; border: 1px solid var(--adm-border); border-radius: 6px; background: var(--adm-surface); font-size: 0.875rem; margin-bottom: 12px; outline:none;">
-                                <option>Visibility: Internal Only</option>
-                                <option>Visibility: Approved Live</option>
-                                <option>Visibility: Hidden</option>
-                            </select>
-                            <textarea placeholder="Add moderation note..." style="width: 100%; height: 80px; padding: 12px; border: 1px solid var(--adm-border); border-radius: 6px; resize: none; font-family: inherit; font-size: 0.875rem; outline: none; box-sizing:border-box;"></textarea>
-                        </div>
-                        <div style="padding: 24px; border-top: 1px solid var(--adm-border); display: flex; gap: 12px;">
-                            <button class="adm-btn adm-btn-primary" style="flex: 1;">Approve & Publish</button>
-                            <button class="adm-btn adm-btn-outline" style="flex: 1;">Request Edits</button>
+                                    <h4 style="font-size: 0.75rem; text-transform: uppercase; color: var(--adm-text-muted); font-weight: 600; margin-bottom: 12px; letter-spacing:0.5px;">Moderation Controls</h4>
+                                    <select style="width: 100%; padding: 8px 12px; border: 1px solid var(--adm-border); border-radius: 6px; background: var(--adm-surface); font-size: 0.875rem; margin-bottom: 12px; outline:none;">
+                                        <option>Visibility: Internal Only</option>
+                                        <option>Visibility: Approved Live</option>
+                                        <option>Visibility: Hidden</option>
+                                    </select>
+                                    <textarea placeholder="Add moderation note..." style="width: 100%; height: 80px; padding: 12px; border: 1px solid var(--adm-border); border-radius: 6px; resize: none; font-family: inherit; font-size: 0.875rem; outline: none; box-sizing:border-box;"></textarea>
+                                </div>
+                                <div style="padding: 24px; border-top: 1px solid var(--adm-border); display: flex; gap: 12px;">
+                                    <button class="adm-btn adm-btn-primary" style="flex: 1;" onclick="document.dispatchEvent(new CustomEvent('triggerDualAdmin'))">Approve & Publish</button>
+                                    <button class="adm-btn adm-btn-outline" style="flex: 1;">Request Edits</button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 `;
             }
-        } else {
-            sidePanel = `
-                <div class="adm-card" style="display: flex; align-items: center; justify-content: center; height: 100%; color: var(--adm-text-muted); font-size: 0.875rem; flex-direction: column; gap: 12px;">
-                    <span style="font-size: 2.5rem; opacity:0.5;">📹</span>
-                    Select a pitch to preview and moderate.
-                </div>
-            `;
         }
 
-        const tbody = this.state.pitchQueue.length === 0 ? 
+        const filteredPitches = this.state.pitchQueue.filter(p => this.state.pitchFilterStatus === 'All' || p.status.includes(this.state.pitchFilterStatus));
+        const tbody = filteredPitches.length === 0 ? 
             `<tr><td colspan="5" style="text-align:center; color:var(--adm-text-muted); padding:48px;">No pitches pending moderation. 🎉</td></tr>` :
-            this.state.pitchQueue.map(p => {
+            filteredPitches.map(p => {
                 const statusClass = p.status === 'Published' || p.status === 'Approved' ? 'approved' : (p.status === 'Needs Edit' ? 'escalated' : 'pending');
                 return `
                 <tr data-pitch-id="${p.id}" style="${this.state.selectedPitchId === p.id ? 'background: var(--bg-hover);' : ''}; cursor:pointer;" tabindex="0" role="row">
@@ -816,7 +918,7 @@ export default class extends AbstractView {
                     <p style="color: var(--adm-text-muted); font-size: 0.875rem; margin: 4px 0 0 0;">Review startup pitch content before making it visible to investors.</p>
                 </div>
                 <div style="display: flex; gap: 12px;">
-                    <select style="padding: 8px 12px; border: 1px solid var(--adm-border); border-radius: 6px; background: var(--adm-surface); font-size: 0.875rem; outline:none;"><option>Pending Review</option><option>Needs Edit</option></select>
+                    <select id="pitchStatusSelect"  style="padding: 8px 12px; border: 1px solid var(--adm-border); border-radius: 6px; background: var(--adm-surface); font-size: 0.875rem; outline:none;"><option value="All" ${this.state.pitchFilterStatus === 'All' ? 'selected' : ''}>All</option><option value="Pending Review" ${this.state.pitchFilterStatus === 'Pending Review' ? 'selected' : ''}>Pending Review</option><option value="Needs Edit" ${this.state.pitchFilterStatus === 'Needs Edit' ? 'selected' : ''}>Needs Edit</option></select>
                 </div>
             </div>
 
@@ -896,6 +998,14 @@ export default class extends AbstractView {
     }
 
     attachPitchListeners() {
+        const pitchSelect = document.getElementById('pitchStatusSelect');
+        if (pitchSelect) {
+            pitchSelect.addEventListener('change', (e) => {
+                this.state.pitchFilterStatus = e.target.value;
+                this.renderModule();
+            });
+        }
+
         document.querySelectorAll('tr[data-pitch-id]').forEach(tr => {
             tr.addEventListener('click', (e) => {
                 this.state.selectedPitchId = tr.dataset.pitchId;
@@ -945,76 +1055,78 @@ export default class extends AbstractView {
                 `).join('');
 
                 sidePanel = `
-                    <div class="adm-card" style="display: flex; flex-direction: column; height: calc(100vh - 200px); overflow-y: auto;">
-                        <div style="padding: 24px; border-bottom: 1px solid var(--adm-border); display: flex; justify-content: space-between; align-items: flex-start;">
-                            <div>
-                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-                                    <span class="adm-badge" style="background:#1e293b; color:#fff;">CASE-${risk.id}</span>
-                                    <span class="adm-badge" style="${risk.severity === 'Critical' ? 'background:var(--danger-soft); color:#e08b8b; border:1px solid var(--danger-soft);' : risk.severity === 'High' ? 'background:var(--warning-soft); color:#f0b35a; border:1px solid var(--warning-soft);' : 'background:var(--brand-primary-soft); color:#f0cc63; border:1px solid var(--brand-primary-soft);'}">${risk.severity === 'Critical' ? '🔴' : risk.severity === 'High' ? '🟠' : '🟡'} ${risk.severity}</span>
-                                </div>
-                                <h3 style="font-size: 1.125rem; font-weight: 600;">${risk.entity}</h3>
-                                <div style="color: var(--adm-text-muted); font-size: 0.875rem; margin-top:4px;">${risk.type} • Reported ${risk.submitted}</div>
-                            </div>
-                            <span class="adm-badge" style="background: ${risk.status === 'Resolved' || risk.status === 'Dismissed' ? 'var(--brand-secondary-soft)' : risk.status === 'Escalated' ? 'var(--danger-soft)' : 'var(--warning-soft)'}; color: ${risk.status === 'Resolved' || risk.status === 'Dismissed' ? '#6fd0d4' : risk.status === 'Escalated' ? '#e08b8b' : '#f0b35a'};">${risk.status}</span>
+                    <div class="adm-drawer-overlay active" onclick="document.dispatchEvent(new CustomEvent('closeDrawer'))"></div>
+                    <div class="adm-drawer active">
+                        <div class="adm-drawer-header">
+                            <h3 style="font-size: 1.125rem; font-weight: 600; margin: 0;">Details</h3>
+                            <button class="adm-drawer-close" onclick="document.dispatchEvent(new CustomEvent('closeDrawer'))">&times;</button>
                         </div>
-                        <div style="padding: 24px; flex: 1;">
-                            <h4 style="font-size: 0.75rem; text-transform: uppercase; color: var(--adm-text-muted); font-weight: 600; margin-bottom: 12px; letter-spacing:0.5px;">Entity Context</h4>
-                            <div style="background: var(--bg-surface-2); padding: 16px; border-radius: 8px; border: 1px solid var(--adm-border); margin-bottom: 24px;">
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 0.875rem;">
-                                    <div style="display: flex; justify-content: space-between;"><span style="color:var(--adm-text-muted);">Name:</span> <strong>${risk.entity}</strong></div>
-                                    <div style="display: flex; justify-content: space-between;"><span style="color:var(--adm-text-muted);">Role:</span> <strong>${risk.type}</strong></div>
-                                    <div style="display: flex; justify-content: space-between;"><span style="color:var(--adm-text-muted);">KYC Status:</span> <strong style="color:${risk.entity === 'John Doe' ? 'var(--adm-danger)' : 'var(--adm-success)'}">${risk.entity === 'John Doe' ? 'Failed' : 'Cleared'}</strong></div>
-                                    <div style="display: flex; justify-content: space-between;"><span style="color:var(--adm-text-muted);">Platform Since:</span> <strong>${risk.entity === 'John Doe' ? 'Mar 2024' : 'Jan 2024'}</strong></div>
+                        <div class="adm-drawer-content">
+                            <div class="adm-card" style="display: flex; flex-direction: column; height: calc(100vh - 200px); overflow-y: auto;">
+                                <div style="padding: 24px; border-bottom: 1px solid var(--adm-border); display: flex; justify-content: space-between; align-items: flex-start;">
+                                    <div>
+                                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                                            <span class="adm-badge" style="background:#1e293b; color:#fff;">CASE-${risk.id}</span>
+                                            <span class="adm-badge" style="${risk.severity === 'Critical' ? 'background:var(--danger-soft); color:#e08b8b; border:1px solid var(--danger-soft);' : risk.severity === 'High' ? 'background:var(--warning-soft); color:#f0b35a; border:1px solid var(--warning-soft);' : 'background:var(--brand-primary-soft); color:#f0cc63; border:1px solid var(--brand-primary-soft);'}">${risk.severity === 'Critical' ? '🔴' : risk.severity === 'High' ? '🟠' : '🟡'} ${risk.severity}</span>
+                                        </div>
+                                        <h3 style="font-size: 1.125rem; font-weight: 600;">${risk.entity}</h3>
+                                        <div style="color: var(--adm-text-muted); font-size: 0.875rem; margin-top:4px;">${risk.type} • Reported ${risk.submitted}</div>
+                                    </div>
+                                    <span class="adm-badge" style="background: ${risk.status === 'Resolved' || risk.status === 'Dismissed' ? 'var(--brand-secondary-soft)' : risk.status === 'Escalated' ? 'var(--danger-soft)' : 'var(--warning-soft)'}; color: ${risk.status === 'Resolved' || risk.status === 'Dismissed' ? '#6fd0d4' : risk.status === 'Escalated' ? '#e08b8b' : '#f0b35a'};">${risk.status}</span>
                                 </div>
-                            </div>
+                                <div style="padding: 24px; flex: 1;">
+                                    <h4 style="font-size: 0.75rem; text-transform: uppercase; color: var(--adm-text-muted); font-weight: 600; margin-bottom: 12px; letter-spacing:0.5px;">Entity Context</h4>
+                                    <div style="background: var(--bg-surface-2); padding: 16px; border-radius: 8px; border: 1px solid var(--adm-border); margin-bottom: 24px;">
+                                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 0.875rem;">
+                                            <div style="display: flex; justify-content: space-between;"><span style="color:var(--adm-text-muted);">Name:</span> <strong>${risk.entity}</strong></div>
+                                            <div style="display: flex; justify-content: space-between;"><span style="color:var(--adm-text-muted);">Role:</span> <strong>${risk.type}</strong></div>
+                                            <div style="display: flex; justify-content: space-between;"><span style="color:var(--adm-text-muted);">KYC Status:</span> <strong style="color:${risk.entity === 'John Doe' ? 'var(--adm-danger)' : 'var(--adm-success)'}">${risk.entity === 'John Doe' ? 'Failed' : 'Cleared'}</strong></div>
+                                            <div style="display: flex; justify-content: space-between;"><span style="color:var(--adm-text-muted);">Platform Since:</span> <strong>${risk.entity === 'John Doe' ? 'Mar 2024' : 'Jan 2024'}</strong></div>
+                                        </div>
+                                    </div>
 
-                            <h4 style="font-size: 0.75rem; text-transform: uppercase; color: var(--adm-text-muted); font-weight: 600; margin-bottom: 12px; letter-spacing:0.5px;">Flag Details</h4>
-                            <div style="background: var(--danger-soft); color: #e08b8b; padding: 16px; border-radius: 6px; font-size: 0.875rem; font-weight: 500; margin-bottom: 8px;">
-                                ${risk.reason}
-                            </div>
-                            <div style="font-size: 0.75rem; color: var(--adm-text-muted); margin-bottom: 24px;">Reported by: ${risk.history[0] ? risk.history[0].actor : 'System'}</div>
-                            
-                            <h4 style="font-size: 0.75rem; text-transform: uppercase; color: var(--adm-text-muted); font-weight: 600; margin-bottom: 12px; letter-spacing:0.5px;">Full Case History</h4>
-                            <div style="position: relative; margin-bottom: 24px;">
-                                <div style="border-left: 2px solid var(--adm-border); position: absolute; top: 8px; bottom: 8px; left: 6px; z-index: 1;"></div>
-                                ${historyHtml}
-                            </div>
+                                    <h4 style="font-size: 0.75rem; text-transform: uppercase; color: var(--adm-text-muted); font-weight: 600; margin-bottom: 12px; letter-spacing:0.5px;">Flag Details</h4>
+                                    <div style="background: var(--danger-soft); color: #e08b8b; padding: 16px; border-radius: 6px; font-size: 0.875rem; font-weight: 500; margin-bottom: 8px;">
+                                        ${risk.reason}
+                                    </div>
+                                    <div style="font-size: 0.75rem; color: var(--adm-text-muted); margin-bottom: 24px;">Reported by: ${risk.history[0] ? risk.history[0].actor : 'System'}</div>
+                                    
+                                    <h4 style="font-size: 0.75rem; text-transform: uppercase; color: var(--adm-text-muted); font-weight: 600; margin-bottom: 12px; letter-spacing:0.5px;">Full Case History</h4>
+                                    <div style="position: relative; margin-bottom: 24px;">
+                                        <div style="border-left: 2px solid var(--adm-border); position: absolute; top: 8px; bottom: 8px; left: 6px; z-index: 1;"></div>
+                                        ${historyHtml}
+                                    </div>
 
-                            <h4 style="font-size: 0.75rem; text-transform: uppercase; color: var(--adm-text-muted); font-weight: 600; margin-bottom: 12px; letter-spacing:0.5px;">Assign Owner</h4>
-                            <select id="riskAssignee" style="width: 100%; padding: 8px 12px; border: 1px solid var(--adm-border); border-radius: 6px; background: var(--adm-surface); font-size: 0.875rem; margin-bottom: 16px; outline:none;">
-                                <option ${risk.assignee === 'Unassigned' ? 'selected' : ''}>Unassigned</option>
-                                <option ${risk.assignee === 'System Admin' ? 'selected' : ''}>System Admin</option>
-                                <option ${risk.assignee === 'Sarah (Compliance)' ? 'selected' : ''}>Sarah (Compliance)</option>
-                                <option ${risk.assignee === 'Operations Team' ? 'selected' : ''}>Operations Team</option>
-                            </select>
+                                    <h4 style="font-size: 0.75rem; text-transform: uppercase; color: var(--adm-text-muted); font-weight: 600; margin-bottom: 12px; letter-spacing:0.5px;">Assign Owner</h4>
+                                    <select id="riskAssignee" style="width: 100%; padding: 8px 12px; border: 1px solid var(--adm-border); border-radius: 6px; background: var(--adm-surface); font-size: 0.875rem; margin-bottom: 16px; outline:none;">
+                                        <option ${risk.assignee === 'Unassigned' ? 'selected' : ''}>Unassigned</option>
+                                        <option ${risk.assignee === 'System Admin' ? 'selected' : ''}>System Admin</option>
+                                        <option ${risk.assignee === 'Sarah (Compliance)' ? 'selected' : ''}>Sarah (Compliance)</option>
+                                        <option ${risk.assignee === 'Operations Team' ? 'selected' : ''}>Operations Team</option>
+                                    </select>
 
-                            <h4 style="font-size: 0.75rem; text-transform: uppercase; color: var(--adm-text-muted); font-weight: 600; margin-bottom: 12px; letter-spacing:0.5px;">Resolution</h4>
-                            <select id="riskResolutionReason" style="width: 100%; padding: 8px 12px; border: 1px solid var(--adm-border); border-radius: 6px; background: var(--adm-surface); font-size: 0.875rem; margin-bottom: 12px; outline:none;">
-                                <option value="">Select resolution reason...</option>
-                                <option>False positive</option>
-                                <option>Resolved with entity</option>
-                                <option>Escalated to legal</option>
-                                <option>Policy violation confirmed</option>
-                            </select>
-                            <textarea id="riskResolutionNote" placeholder="Mandatory closure note..." style="width: 100%; height: 80px; padding: 12px; border: 1px solid var(--adm-border); border-radius: 6px; resize: none; font-family: inherit; font-size: 0.875rem; margin-bottom: 12px; outline: none; box-sizing:border-box;"></textarea>
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                                <button class="adm-btn adm-btn-primary risk-action-btn" data-action="Resolve" style="grid-column: span 2;">Mark as Resolved</button>
-                                <button class="adm-btn adm-btn-outline risk-action-btn" data-action="Dismiss">Dismiss Flag</button>
-                                <button class="adm-btn adm-btn-outline risk-action-btn" data-action="Warn">Send Warning</button>
-                                <button class="adm-btn adm-btn-danger risk-action-btn" data-action="Suspend">Suspend Entity</button>
-                                <button class="adm-btn adm-btn-primary risk-action-btn" data-action="Escalate">Escalate to Compliance</button>
+                                    <h4 style="font-size: 0.75rem; text-transform: uppercase; color: var(--adm-text-muted); font-weight: 600; margin-bottom: 12px; letter-spacing:0.5px;">Resolution</h4>
+                                    <select id="riskResolutionReason" style="width: 100%; padding: 8px 12px; border: 1px solid var(--adm-border); border-radius: 6px; background: var(--adm-surface); font-size: 0.875rem; margin-bottom: 12px; outline:none;">
+                                        <option value="">Select resolution reason...</option>
+                                        <option>False positive</option>
+                                        <option>Resolved with entity</option>
+                                        <option>Escalated to legal</option>
+                                        <option>Policy violation confirmed</option>
+                                    </select>
+                                    <textarea id="riskResolutionNote" placeholder="Mandatory closure note..." style="width: 100%; height: 80px; padding: 12px; border: 1px solid var(--adm-border); border-radius: 6px; resize: none; font-family: inherit; font-size: 0.875rem; margin-bottom: 12px; outline: none; box-sizing:border-box;"></textarea>
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                                        <button class="adm-btn adm-btn-primary risk-action-btn" data-action="Resolve" style="grid-column: span 2;">Mark as Resolved</button>
+                                        <button class="adm-btn adm-btn-outline risk-action-btn" data-action="Dismiss">Dismiss Flag</button>
+                                        <button class="adm-btn adm-btn-outline risk-action-btn" data-action="Warn">Send Warning</button>
+                                        <button class="adm-btn adm-btn-danger" onclick="document.dispatchEvent(new CustomEvent('triggerDualAdmin'))">Suspend Entity</button>
+                                        <button class="adm-btn adm-btn-primary risk-action-btn" data-action="Escalate">Escalate to Compliance</button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 `;
             }
-        } else {
-            sidePanel = `
-                <div class="adm-card" style="display: flex; align-items: center; justify-content: center; height: 100%; color: var(--adm-text-muted); font-size: 0.875rem; flex-direction: column; gap: 12px;">
-                    <span style="font-size: 2.5rem; opacity:0.5;">🚩</span>
-                    Select a case to investigate and resolve.
-                </div>
-            `;
         }
 
         const openCount = this.state.riskFlagsQueue.filter(r => r.status !== 'Resolved' && r.status !== 'Dismissed').length;
@@ -1027,34 +1139,33 @@ export default class extends AbstractView {
             return 'background:var(--bg-surface-2); color:var(--text-muted); border:1px solid var(--divider);';
         };
 
-        const tbody = this.state.riskFlagsQueue.length === 0 ? 
-            `<tr><td colspan="5" style="text-align:center; color:var(--adm-text-muted); padding:48px;">No risk flags active. System is secure. 🛡️</td></tr>` :
-            this.state.riskFlagsQueue.map(r => `
-                <tr data-risk-id="${r.id}" style="${this.state.selectedRiskId === r.id ? 'background: var(--bg-hover);' : ''}; cursor:pointer;" tabindex="0" role="row">
-                    <td>
-                        <div style="font-weight: 500;">${r.entity}</div>
-                        <div style="font-size: 0.75rem; color: var(--adm-text-muted); margin-top:2px;">${r.type}</div>
-                    </td>
-                    <td><span class="adm-badge" style="${getSeverityStyle(r.severity)}">${r.severity}</span></td>
-                    <td><span class="adm-badge" style="background:var(--bg-surface-2); color:var(--adm-text);">${r.status}</span></td>
-                    <td>${r.assignee}</td>
-                    <td style="color:var(--adm-text-muted);">${r.submitted}</td>
-                </tr>
-            `).join('');
+        const filteredRisks = this.state.riskFlagsQueue.filter(r => 
+            this.state.riskFilterStatus === 'All Open' ? r.status !== 'Resolved' && r.status !== 'Dismissed' :
+            this.state.riskFilterStatus === 'High/Critical' ? (r.severity === 'Critical' || r.severity === 'High') && r.status !== 'Resolved' && r.status !== 'Dismissed' :
+            this.state.riskFilterStatus === 'Escalated' ? r.status === 'Escalated' :
+            this.state.riskFilterStatus === 'Resolved' ? r.status === 'Resolved' : true
+        );
 
         return `
-            ${this.getBreadcrumbHtml('risk_flags', this.state.selectedRiskId ? 'CASE-' + this.state.selectedRiskId : null)}
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-                <div>
-                    <h1 style="font-size: 1.5rem; font-weight: 600; margin-bottom: 4px;">Risk & Flags</h1>
-                    <p style="color: var(--adm-text-muted); font-size: 0.875rem;">Investigate platform abuse, disputes, and compliance flags.</p>
-                </div>
-                <div style="display: flex; gap: 16px;">
-                    <div style="display:flex; align-items:center; gap:8px; background:var(--adm-surface); padding:8px 16px; border-radius:6px; border:1px solid var(--adm-border);">
-                        <span style="font-size:0.75rem; font-weight:600; text-transform:uppercase; color:var(--adm-text-muted);">Open Cases</span>
-                        <span style="font-weight:600;">${openCount}</span>
+            <div class="adm-header">
+                <div class="adm-header-title">Risk & Flags</div>
+                <div class="adm-header-actions">
+                    <p style="color: var(--adm-text-muted); font-size: 0.875rem; margin-right: auto;">Investigate platform abuse, disputes, and compliance flags.</p>
+                    <div style="display: flex; gap: 16px;">
+                        <button id="lockdownToggleBtn" class="adm-btn ${this.state.emergencyLockdown ? 'adm-btn-outline' : 'adm-btn-danger'}" style="font-weight:600;">${this.state.emergencyLockdown ? 'Deactivate Lockdown' : 'Activate System Lockdown'}</button>
                     </div>
-                    <div style="display:flex; align-items:center; gap:8px; background:var(--adm-surface); padding:8px 16px; border-radius:6px; border:1px solid var(--adm-border);">
+                </div>
+            </div>
+            
+            <div class="adm-metric-row" style="margin-bottom: 24px;">
+                <div class="adm-metric-card" onclick="document.dispatchEvent(new CustomEvent('filterRisks', {detail: 'All Open'}))" style="cursor:pointer; ${this.state.riskFilterStatus === 'All Open' ? 'border-color: var(--adm-brand-primary); box-shadow: 0 0 0 1px var(--adm-brand-primary);' : ''}">
+                    <div style="display:flex; flex-direction:column; gap:4px;">
+                        <span style="font-size:0.75rem; font-weight:600; text-transform:uppercase; color:var(--adm-text-muted);">Active Flags</span>
+                        <span style="font-weight:600; color:var(--adm-text-main);">${openCount}</span>
+                    </div>
+                </div>
+                <div class="adm-metric-card" onclick="document.dispatchEvent(new CustomEvent('filterRisks', {detail: 'High/Critical'}))" style="cursor:pointer; ${this.state.riskFilterStatus === 'High/Critical' ? 'border-color: var(--adm-danger); box-shadow: 0 0 0 1px var(--adm-danger);' : ''}">
+                    <div style="display:flex; flex-direction:column; gap:4px;">
                         <span style="font-size:0.75rem; font-weight:600; text-transform:uppercase; color:var(--adm-text-muted);">High/Critical</span>
                         <span style="font-weight:600; color:var(--adm-danger);">${criticalCount}</span>
                     </div>
@@ -1062,7 +1173,7 @@ export default class extends AbstractView {
             </div>
             
             <div style="display: flex; gap: 12px; margin-bottom: 24px; padding: 12px; background: var(--adm-surface); border: 1px solid var(--adm-border); border-radius: 8px;">
-                <select style="padding: 6px 12px; border: 1px solid var(--adm-border); border-radius: 4px; background: var(--adm-bg); font-size: 0.875rem; outline:none;"><option>Status: All Open</option><option>Escalated</option><option>Resolved</option></select>
+                <select id="riskStatusSelect"  style="padding: 6px 12px; border: 1px solid var(--adm-border); border-radius: 4px; background: var(--adm-bg); font-size: 0.875rem; outline:none;"><option value="All Open" ${this.state.riskFilterStatus === 'All Open' ? 'selected' : ''}>Status: All Open</option><option value="Escalated" ${this.state.riskFilterStatus === 'Escalated' ? 'selected' : ''}>Escalated</option><option value="Resolved" ${this.state.riskFilterStatus === 'Resolved' ? 'selected' : ''}>Resolved</option></select>
                 <select style="padding: 6px 12px; border: 1px solid var(--adm-border); border-radius: 4px; background: var(--adm-bg); font-size: 0.875rem; outline:none;"><option>Severity: All</option><option>Critical Only</option></select>
                 <select style="padding: 6px 12px; border: 1px solid var(--adm-border); border-radius: 4px; background: var(--adm-bg); font-size: 0.875rem; outline:none;"><option>Assignee: All</option><option>Assigned to Me</option></select>
                 <div style="flex:1;"></div>
@@ -1090,6 +1201,22 @@ export default class extends AbstractView {
     }
 
     attachRiskFlagsListeners() {
+        document.querySelectorAll('.adm-metric-card').forEach(card => {
+            card.addEventListener('click', (e) => {
+                const filterVal = e.currentTarget.dataset.filter;
+                this.state.riskFilterStatus = filterVal === this.state.riskFilterStatus ? 'All Open' : filterVal;
+                this.renderModule();
+            });
+            card.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); card.click(); } });
+        });
+        const riskSelect = document.getElementById('riskStatusSelect');
+        if (riskSelect) {
+            riskSelect.addEventListener('change', (e) => {
+                this.state.riskFilterStatus = e.target.value;
+                this.renderModule();
+            });
+        }
+
         document.querySelectorAll('tr[data-risk-id]').forEach(tr => {
             tr.addEventListener('click', (e) => {
                 this.state.selectedRiskId = tr.dataset.riskId;
@@ -1164,7 +1291,7 @@ export default class extends AbstractView {
     }
 
     getIntroductionsHtml() {
-        let sidePanel = '';
+        let drawerHtml = '';
         if (this.state.selectedIntroId) {
             const intro = this.state.introductionsQueue.find(i => i.id === this.state.selectedIntroId);
             if (intro) {
@@ -1209,7 +1336,15 @@ export default class extends AbstractView {
                     </div>
                 ` : `<div style="padding: 12px; background: var(--danger-soft); color: #e08b8b; border-radius: 6px; font-size: 0.875rem; font-weight: 500; margin-bottom: 24px; text-align: center;">Pipeline Halted: ${intro.status}</div>`;
 
-                sidePanel = `
+                drawerHtml = `
+                    <div class="adm-drawer-overlay active" onclick="document.dispatchEvent(new CustomEvent('closeDrawer'))"></div>
+                    <div class="adm-drawer active">
+                        <div class="adm-drawer-header">
+                            <h3 style="font-size: 1.125rem; font-weight: 600; margin: 0;">Details</h3>
+                            <button class="adm-drawer-close" onclick="document.dispatchEvent(new CustomEvent('closeDrawer'))">&times;</button>
+                        </div>
+                        <div class="adm-drawer-content">
+                            
                     <div class="adm-card" style="display: flex; flex-direction: column; height: calc(100vh - 200px); overflow-y: auto;">
                         <div style="padding: 24px; border-bottom: 1px solid var(--adm-border); display: flex; justify-content: space-between; align-items: flex-start;">
                             <div>
@@ -1275,15 +1410,11 @@ export default class extends AbstractView {
                             </div>
                         </div>
                     </div>
+                
+                        </div>
+                    </div>
                 `;
             }
-        } else {
-            sidePanel = `
-                <div class="adm-card" style="display: flex; align-items: center; justify-content: center; height: 100%; color: var(--adm-text-muted); font-size: 0.875rem; flex-direction: column; gap: 12px;">
-                    <span style="font-size: 2.5rem; opacity:0.5;">🤝</span>
-                    Select an introduction to view match details and take action.
-                </div>
-            `;
         }
 
         const total = this.state.introductionsQueue.length;
@@ -1302,9 +1433,10 @@ export default class extends AbstractView {
             return 'background:var(--bg-surface-2); color:var(--text-muted); border:1px solid var(--divider);';
         };
 
-        const tbody = this.state.introductionsQueue.length === 0 ? 
+        const filteredIntros = this.state.introductionsQueue.filter(i => this.state.introFilterStatus === 'All' || i.status === this.state.introFilterStatus);
+        const tbody = filteredIntros.length === 0 ? 
             `<tr><td colspan="7" style="text-align:center; color:var(--adm-text-muted); padding:48px;">No introductions found.</td></tr>` :
-            this.state.introductionsQueue.map(i => {
+            filteredIntros.map(i => {
                 const scoreIndicator = i.score >= 90 ? '🟢' : (i.score >= 75 ? '🟡' : '🔴');
                 const escalation = (i.status === 'Intro Sent' && i.date === 'May 30') ? '<span title="Over 48h without response" style="margin-left:4px;">⚠️</span>' : '';
                 let pipelineLabel = 'Match';
@@ -1356,7 +1488,7 @@ export default class extends AbstractView {
             </div>
             
             <div style="display: flex; gap: 12px; margin-bottom: 24px; padding: 12px; background: var(--adm-surface); border: 1px solid var(--adm-border); border-radius: 8px;">
-                <select style="padding: 6px 12px; border: 1px solid var(--adm-border); border-radius: 4px; background: var(--adm-bg); font-size: 0.875rem; outline:none;"><option>Status: All</option><option>Pending Match</option><option>Matched</option><option>Intro Sent</option><option>Accepted</option><option>Declined</option></select>
+                <select id="introStatusSelect"  style="padding: 6px 12px; border: 1px solid var(--adm-border); border-radius: 4px; background: var(--adm-bg); font-size: 0.875rem; outline:none;"><option value="All" ${this.state.introFilterStatus === 'All' ? 'selected' : ''}>Status: All</option><option value="Pending Match" ${this.state.introFilterStatus === 'Pending Match' ? 'selected' : ''}>Pending Match</option><option value="Matched" ${this.state.introFilterStatus === 'Matched' ? 'selected' : ''}>Matched</option><option value="Intro Sent" ${this.state.introFilterStatus === 'Intro Sent' ? 'selected' : ''}>Intro Sent</option><option value="Accepted" ${this.state.introFilterStatus === 'Accepted' ? 'selected' : ''}>Accepted</option><option value="Declined" ${this.state.introFilterStatus === 'Declined' ? 'selected' : ''}>Declined</option></select>
                 <select style="padding: 6px 12px; border: 1px solid var(--adm-border); border-radius: 4px; background: var(--adm-bg); font-size: 0.875rem; outline:none;"><option>Role: All</option><option>Angel Investors</option><option>VCs</option><option>Corporate Investors</option><option>Family Offices</option><option>Funds</option></select>
                 <button class="adm-btn adm-btn-outline" style="padding: 6px 12px; font-size: 0.875rem;">Batch Remind</button>
                 <div style="flex:1;"></div>
@@ -1380,12 +1512,28 @@ export default class extends AbstractView {
                         <tbody>${tbody}</tbody>
                     </table>
                 </div>
-                ${sidePanel}
+                ${drawerHtml}
             </div>
         `;
     }
 
     attachIntroductionsListeners() {
+        document.querySelectorAll('.adm-metric-card').forEach(card => {
+            card.addEventListener('click', (e) => {
+                const filterVal = e.currentTarget.dataset.filter;
+                this.state.introFilterStatus = filterVal === this.state.introFilterStatus ? 'All' : filterVal;
+                this.renderModule();
+            });
+            card.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); card.click(); } });
+        });
+        const introSelect = document.getElementById('introStatusSelect');
+        if (introSelect) {
+            introSelect.addEventListener('change', (e) => {
+                this.state.introFilterStatus = e.target.value;
+                this.renderModule();
+            });
+        }
+
         document.querySelectorAll('tr[data-intro-id]').forEach(tr => {
             tr.addEventListener('click', (e) => {
                 this.state.selectedIntroId = tr.dataset.introId;
@@ -1856,7 +2004,8 @@ export default class extends AbstractView {
             return 'background:var(--bg-surface-2); color:var(--text-muted); border:1px solid var(--divider);';
         };
 
-        const tbody = this.state.dealsQueue.length === 0 ? 
+        const filteredDeals = this.state.dealsQueue.filter(d => this.state.dealsFilterStatus === 'All' || d.status === this.state.dealsFilterStatus);
+        const tbody = filteredDeals.length === 0 ? 
             `<tr><td colspan="7" style="text-align:center; color:var(--adm-text-muted); padding:48px;">No active deals found.</td></tr>` :
             this.state.dealsQueue.map(i => {
                 const pct = Math.min(100, Math.floor((i.committed / i.targetRaise) * 100));
@@ -1932,6 +2081,22 @@ export default class extends AbstractView {
     }
     
     attachDealsListeners() {
+        document.querySelectorAll('.adm-metric-card').forEach(card => {
+            card.addEventListener('click', (e) => {
+                const filterVal = e.currentTarget.dataset.filter;
+                this.state.dealsFilterStatus = filterVal === this.state.dealsFilterStatus ? 'All' : filterVal;
+                this.renderModule();
+            });
+            card.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); card.click(); } });
+        });
+        const dealsSelect = document.getElementById('dealsStatusSelect');
+        if (dealsSelect) {
+            dealsSelect.addEventListener('change', (e) => {
+                this.state.dealsFilterStatus = e.target.value;
+                this.renderModule();
+            });
+        }
+
         document.querySelectorAll('tr[data-deal-id]').forEach(tr => {
             tr.addEventListener('click', (e) => {
                 this.state.selectedDealId = tr.dataset.dealId;
@@ -2533,7 +2698,7 @@ export default class extends AbstractView {
                 </div>
 
                 <!-- KPI Stat Strip -->
-                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 24px;">
                     ${kpis.map(kpi => `
                         <div class="adm-card" style="padding: 20px; text-align: center;">
                             <div style="font-size: 11px; font-weight: 600; color: var(--adm-text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">${kpi.label}</div>
@@ -3013,11 +3178,19 @@ export default class extends AbstractView {
                 </tr>
             `).join('');
 
-        let sidePanel = '';
+        let drawerHtml = '';
         if (this.state.selectedUserId) {
             const user = this.state.usersQueue.find(u => u.id === this.state.selectedUserId);
             if (user) {
-                sidePanel = `
+                drawerHtml = `
+                    <div class="adm-drawer-overlay active" onclick="document.dispatchEvent(new CustomEvent('closeDrawer'))"></div>
+                    <div class="adm-drawer active">
+                        <div class="adm-drawer-header">
+                            <h3 style="font-size: 1.125rem; font-weight: 600; margin: 0;">Details</h3>
+                            <button class="adm-drawer-close" onclick="document.dispatchEvent(new CustomEvent('closeDrawer'))">&times;</button>
+                        </div>
+                        <div class="adm-drawer-content">
+                            
                     <div class="adm-card" style="padding: 24px; position: sticky; top: 0; display:flex; flex-direction:column; gap:20px;">
                         <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid var(--adm-border); padding-bottom: 16px;">
                             <div style="display:flex; gap:12px; align-items:center;">
@@ -3079,16 +3252,11 @@ export default class extends AbstractView {
                             <textarea id="userAdminNotes" style="width:100%; height:80px; padding:8px; border:1px solid var(--adm-border); border-radius:6px; background:var(--adm-bg); color:var(--adm-text); font-size:13px; outline:none; resize:none;" placeholder="Enter audit or override justification...">${user.notes || ''}</textarea>
                         </div>
                     </div>
+                
+                        </div>
+                    </div>
                 `;
             }
-        } else {
-            sidePanel = `
-                <div class="adm-card" style="padding: 32px 24px; text-align: center; color: var(--adm-text-muted); height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center;">
-                    <div style="font-size: 40px; margin-bottom: 16px;">👤</div>
-                    <h3 style="font-size: 15px; font-weight: 600; color: var(--adm-text); margin: 0 0 6px 0;">No User Selected</h3>
-                    <p style="font-size: 13px; margin: 0; line-height: 1.4;">Click any row in the directory list to edit profile credentials, override compliance statuses, or view active logs.</p>
-                </div>
-            `;
         }
 
         return `
@@ -3153,7 +3321,7 @@ export default class extends AbstractView {
                         <tbody>${tbody}</tbody>
                     </table>
                 </div>
-                ${sidePanel}
+                ${drawerHtml}
             </div>
         `;
     }
