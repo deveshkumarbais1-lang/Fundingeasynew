@@ -1,5 +1,6 @@
 import HomeView from './views/HomeView.js';
 import LoginView from './views/LoginView.js';
+import ForgotPasswordView from './views/ForgotPasswordView.js';
 import SignupView from './views/SignupView.js';
 import OnboardingView from './views/OnboardingView.js';
 import EntrepreneurDashboardView from './views/EntrepreneurDashboardView.js';
@@ -22,6 +23,7 @@ import ContactView from './views/ContactView.js';
 const routes = {
     '/': HomeView,
     '/login': LoginView,
+    '/forgot-password': ForgotPasswordView,
     '/signup': SignupView,
     '/onboarding': OnboardingView,
     '/dashboard/entrepreneur': EntrepreneurDashboardView,

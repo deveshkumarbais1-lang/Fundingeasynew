@@ -1,3 +1,5 @@
+$file = "C:\Users\user\.gemini\antigravity\scratch\funding-easy\js\views\ContactView.js"
+$content = @"
 import AbstractView from './AbstractView.js';
 import Navbar from '../components/Navbar.js';
 
@@ -264,7 +266,7 @@ export default class extends AbstractView {
             </style>
             
             <div class="contact-page">
-                 + '' + 
+                ` + '${Navbar()}' + `
                 
                 <main class="contact-container">
                     <!-- Left Panel: Info -->
@@ -439,3 +441,5 @@ export default class extends AbstractView {
         }
     }
 }
+"@
+Set-Content $file $content
